@@ -1,0 +1,55 @@
+run_name: me5-instruct-chuvash-train
+output_base_dir: ./experiments
+
+data:
+  train:
+    path: lingtrain/minor-prince
+    split: train
+  
+  eval:
+    test_size_from_train: 0.2
+    
+    # split_from_train_path: null # например, 'test' или 'validation'
+    
+    # path: null # например, 'path/to/eval.jsonl'
+    # split: null # например, 'train'
+
+  source_column: cv
+  target_column: ru
+
+preprocessing:
+  apply_function:
+    _target_: eeve.utils.preprocess.get_detailed_instruct_for_ds_example
+    fn_kwargs:
+      task_description: "Retrieve parallel sentences."
+
+model:
+  _target_: sentence_transformers.SentenceTransformer
+  model_name_or_path: intfloat/multilingual-e5-large-instruct
+
+loss:
+  _target_: sentence_transformers.losses.MultipleNegativesRankingLoss
+
+evaluator:
+  _target_: sentence_transformers.evaluation.TranslationEvaluator
+  name: ${run_name}
+
+training:
+  _target_: sentence_transformers.SentenceTransformerTrainingArguments
+  output_dir: ${output_base_dir}/${run_name}
+  num_train_epochs: 15
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  learning_rate: 2e-5
+  warmup_ratio: 0.05
+  fp16: true
+  bf16: false
+  batch_sampler: "no_duplicates"
+  eval_strategy: "steps"
+  eval_steps: 50
+  save_strategy: "steps"
+  save_steps: 250
+  save_total_limit: 2
+  logging_steps: 50
+  report_to: "wandb"
+  run_name: ${run_name}
