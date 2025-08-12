@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 import torch
 import sentence_transformers
 from sentence_transformers import SentenceTransformerTrainer
-from eeve.utils.datasets import _load_dataset_from_path
+from eeve.eeve.utils.datasets_utils import _load_dataset_from_path
 
 
 @hydra.main(config_path="../../training_configs", config_name="st_hydra_config", version_base=None)
@@ -71,7 +71,7 @@ def train(cfg: DictConfig):
     # TODO: допилить для использования любых параметров в evaluator
     evaluator = hydra.utils.instantiate(
         cfg.evaluator,
-        source_sentences=list(source_sentences),
+        source_sentences=source_sentences,
         target_sentences=target_sentences,
     )
 

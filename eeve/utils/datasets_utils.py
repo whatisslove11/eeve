@@ -1,0 +1,83 @@
+import os
+import random
+from tqdm import tqdm
+from typing import Literal
+from datasets import load_dataset, Dataset, DatasetDict
+from eeve.utils.logger import get_logger
+
+logger = get_logger()
+
+
+def _load_dataset_from_path(path: str, test_size: float | None = None, load_kwargs = {}) -> DatasetDict:  
+    if path.endswith("jsonl") or path.endswith("json"):
+        dataset = load_dataset("json", data_files=path, **load_kwargs)
+    elif path.endswith("csv"):
+        dataset = load_dataset("csv", data_files=path, **load_kwargs)
+    else:
+        dataset = load_dataset(path, **load_kwargs)
+    
+    if test_size is not None and 'test' not in dataset.keys() and 'train' in dataset.keys():
+        dataset = dataset["train"].train_test_split(
+            test_size, seed=42, load_from_cache_file=True
+        )
+    
+    return dataset
+
+
+def _sample_dataset(
+    dataset: Dataset,
+    mode: Literal['random', 'sequential'],
+    num_samples: int | None = None,
+    ds_ratio: float | None = None
+) -> Dataset:
+    total_samples = len(dataset)
+
+    if num_samples is None and ds_ratio is None:
+        raise ValueError("Either num_samples or ds_ratio must be specified")
+    if num_samples is not None and ds_ratio is not None:
+        raise ValueError("Only one of num_samples or ds_ratio should be specified, not both")
+
+    total_to_select = num_samples if num_samples is not None else int(total_samples * ds_ratio)
+    idx = range(total_to_select) if mode =='sequential' else random.sample(range(total_samples), total_to_select)
+
+    dataset = dataset.select(idx)
+    return dataset
+
+
+def _convert_datasets_to_txt(dataset_names: list[str], output_dir: str, output_filename: str) -> None:
+    """
+    Download datasets from Hugging Face and save content from all columns to a single text file.
+    Can be useful as a preparatory step before training a sentencepiece tokenizer.
+    
+    Args:
+        dataset_names: List of dataset names from Hugging Face
+        output_dir: Directory to save the output file
+        output_filename: Name of the output file
+    """
+    logger = get_logger()
+    os.makedirs(output_dir, exist_ok=True)
+    
+    output_path = os.path.join(output_dir, output_filename)
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for dataset_name in tqdm(dataset_names, desc="Processing datasets"):
+            try:
+                print('load')
+                dataset = _load_dataset_from_path(dataset_name)
+                
+                for split in dataset.keys():
+                    ds_split = dataset[split]
+                    if len(ds_split.column_names) == 0:
+                        continue
+                    print('in split')
+                    for column_name in ds_split.column_names:
+                        for entry in tqdm(ds_split[column_name]):
+                            print('check entry')
+                            if entry is not None:
+                                f.write(str(entry) + '\n')
+            
+            except Exception as e:
+                logger.error(f"Error processing dataset {dataset_name}: {e}")
+                continue
+    
+    logger.info(f"All data saved to {output_path}")
