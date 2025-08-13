@@ -1,13 +1,3 @@
-"""
-Function for Standardizing Quotation Marks
-
-Standardizes quotation marks in text by replacing them with chevron quotes (« »).
-In case of nested quotation marks, only replaces the outermost pair with chevron quotes, leaving the inner ones unchanged.
-"""
-import re
-from abc import ABC, abstractmethod
-from typing import Any
-
 from abc import ABC, abstractmethod
 from datatrove.data import DocumentsPipeline
 from datatrove.pipeline.base import PipelineStep
@@ -15,6 +5,13 @@ from datatrove.utils.typeshelper import StatHints
 
 
 class AdvancedFormatter(PipelineStep, ABC):
+    """
+    An enhanced version of BaseFormatter. Allows working not only with the "text" field of the Document class, but with any other field as well.
+    To access the desired field, simply pass a string with the description of the field you want to access.
+    Examples:
+    - "metadata['abrakadabra']"
+    - "text" (set by default)
+    """
     type = "✂️ - FORMAT"
 
     def __init__(self, field_path: str = "text"):
@@ -49,6 +46,12 @@ class AdvancedFormatter(PipelineStep, ABC):
 
 
 class QuoteReplacer(AdvancedFormatter):
+    """
+    Function for Standardizing Quotation Marks
+
+    Standardizes quotation marks in text by replacing them with chevron quotes (« »).
+    In case of nested quotation marks, only replaces the outermost pair with chevron quotes, leaving the inner ones unchanged.
+    """
     name = "Quotation Mark Replacer"
 
     def __init__(self, field_path: str = "text"):

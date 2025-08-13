@@ -197,3 +197,5 @@ cython_debug/
 pip.ipynb
 working_dir/
 datasets/
+TODO.md
+eeve/data/Notebooks/
