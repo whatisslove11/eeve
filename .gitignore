@@ -196,3 +196,4 @@ cython_debug/
 # temp files
 pip.ipynb
 working_dir/
+datasets/

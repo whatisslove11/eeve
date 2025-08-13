@@ -1,8 +1,5 @@
 import re
 from collections import Counter
-"""
-Эвристики по типу "длина ОДНОГО предложения больше Х" делаются через LambdaFilter + lambda функции
-"""
 
 
 def compare_length(
@@ -23,7 +20,3 @@ def regex_parallel_corpus_compare(source_sentence: str, target_sentence: str, re
         matches = re.findall(regex, text)
         return Counter(matches)
     return count_smth(source_sentence, regex_expression) == count_smth(target_sentence, regex_expression)
-
-# def compare_numbers(source_sentence: str, target_sentence: str) -> bool:
-#     number_pattern = r'\b-?\d+(?:\.\d+)?\b'
-#     return count_smth(source_sentence, number_pattern) == count_smth(target_sentence, number_pattern)
