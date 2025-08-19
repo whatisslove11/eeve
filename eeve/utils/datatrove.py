@@ -1,6 +1,4 @@
-import re
 import dataclasses
-from collections import Counter
 from datatrove.data import Document
 from huggingface_hub import hf_hub_download
 
@@ -50,7 +48,7 @@ def _writer_adapter_with_column_restore(self, document: Document) -> dict:
 
     """
     data = {key: val for key, val in dataclasses.asdict(document).items() if val}
-    if self.expand_metadata and "metadata" in data:
+    if "metadata" in data:
         metadata = data.pop("metadata")
         
         default_columns = metadata.pop("default_columns", None)

@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 import torch
 import sentence_transformers
 from sentence_transformers import SentenceTransformerTrainer
-from eeve.utils.datasets_utils import _load_dataset_from_path
+from eeve.utils.dataset import _load_dataset_from_path
 
 
 @hydra.main(config_path="../../training_configs", config_name="st_hydra_config", version_base=None)

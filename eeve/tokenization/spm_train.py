@@ -7,7 +7,7 @@ from sentencepiece import SentencePieceTrainer as spm_t
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SentencePiece tokenizer')
     parser.add_argument(
-        '--input_files_dir', 
+        '--input_files', 
         required=True,
         help='Path to a single file or directory containing input files for training'
     )
@@ -56,13 +56,13 @@ if __name__ == '__main__':
     else:
         num_threads = int(args.num_threads)
 
-    if os.path.isfile(args.input_files_dir):
-        files = args.input_files_dir
-    elif os.path.isdir(args.input_files_dir):
+    if os.path.isfile(args.input_files):
+        files = args.input_files
+    elif os.path.isdir(args.input_files):
         files = [
-            os.path.join(args.input_files_dir, f) 
-            for f in os.listdir(args.input_files_dir) 
-            if os.path.isfile(os.path.join(args.input_files_dir, f))
+            os.path.join(args.input_files, f) 
+            for f in os.listdir(args.input_files) 
+            if os.path.isfile(os.path.join(args.input_files, f))
         ]
 
     model_base_name = os.path.basename(args.model_name)

@@ -6,7 +6,6 @@ from datatrove.pipeline.dedup.minhash import (
     MinhashDedupCluster,
     MinhashDedupFilter,
 )
-from datatrove.pipeline.readers import HuggingFaceDatasetReader
 from datatrove.pipeline.writers.jsonl import JsonlWriter
 from datatrove.pipeline.writers.huggingface import HuggingFaceDatasetWriter
 from datatrove.pipeline.tokens import TokensCounter
@@ -14,7 +13,7 @@ from datatrove.utils.hashing import HashConfig
 
 
 def minhash_dedup(
-    dataset_path: str,
+    INPUT_READER,
     minhash_base_path: str,
     language: str,
     num_buckets: int,
@@ -25,8 +24,6 @@ def minhash_dedup(
     total_tasks: int = 1,
     workers: int = -1
 ):
-    INPUT_READER = ...
-
     minhash_config = MinhashConfig(
         hash_config=HashConfig(
             precision=64,
@@ -102,12 +99,3 @@ def minhash_dedup(
     )
 
     stage4.run()
-
-
-def setup_parser():
-    pass
-
-
-if __name__ == '__main__':
-    pass
-
