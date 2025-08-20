@@ -21,7 +21,7 @@ def reinit_model_layers(
     
     vocab_size = len(new_tokenizer.get_vocab())
     dtype = model.get_input_embeddings().weight.dtype
-    tie_weights = getattr(model.config, "tying_word_embeddings", False) or tie_weights
+    tie_weights = getattr(model.config, "tie_word_embeddings", False) or tie_weights
     initializer_range = getattr(model.config, "initializer_range", 0.02)
     model.config.vocab_size = vocab_size
 
@@ -58,14 +58,11 @@ def reinit_model_layers(
                     i_token_vector_input = embeddings_src[token_idx].to(dtype)
                 new_emb_layer.weight.data[i].copy_(i_token_vector_input)
 
-                if new_lm_head is not None:
-                    if tie_weights:
-                        i_token_vector_output = i_token_vector_input
+                if new_lm_head is not None and not tie_weights:
+                    if token_idx is None:
+                        i_token_vector_output = lm_head_mean_vector
                     else:
-                        if token_idx is None:
-                            i_token_vector_output = lm_head_mean_vector
-                        else:
-                            i_token_vector_output = lm_head_src[token_idx].to(dtype)
+                        i_token_vector_output = lm_head_src[token_idx].to(dtype)
                     new_lm_head.weight.data[i].copy_(i_token_vector_output)
 
                 if write_logs:
