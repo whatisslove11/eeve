@@ -1,10 +1,10 @@
 import os
-import math
 import argparse
 import warnings
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, NllbTokenizer
+from transformers.models.nllb.tokenization_nllb import FAIRSEQ_LANGUAGE_CODES
 
 
 # https://github.com/google/sentencepiece/blob/master/src/sentencepiece_model.proto#L295
@@ -25,6 +25,7 @@ def merge_sentencepiece_tokenizers(
     path_to_new_tokenizer: str,
     path_to_save: str,
     new_tokenizer_name: str,
+    nllb_additional_lang_codes: list[str] | None = None
 ):
     old_spm = sp_pb2_model.ModelProto()
     new_spm = sp_pb2_model.ModelProto()
@@ -74,7 +75,21 @@ def merge_sentencepiece_tokenizers(
     with open(NEW_SPM_NAME, 'wb') as f:
         f.write(old_spm.SerializeToString())
 
-    merged_tokenizer = type(old_tokenizer).from_pretrained(old_tokenizer.name_or_path, vocab_file=NEW_SPM_NAME)
+    if nllb_additional_lang_codes and not isinstance(old_tokenizer, NllbTokenizer):
+        warnings.warn("The option to add lang_codes is only available for Nllb models")
+        nllb_additional_lang_codes = None
+
+    if nllb_additional_lang_codes:
+        merged_tokenizer = type(old_tokenizer).from_pretrained(
+            old_tokenizer.name_or_path,
+            vocab_file=NEW_SPM_NAME,
+            additional_special_tokens=sorted(FAIRSEQ_LANGUAGE_CODES + nllb_additional_lang_codes)
+        )
+    else:
+        merged_tokenizer = type(old_tokenizer).from_pretrained(
+            old_tokenizer.name_or_path,
+            vocab_file=NEW_SPM_NAME
+        )
     merged_tokenizer.save_pretrained(hf_path)
 
 
@@ -87,33 +102,42 @@ if __name__ == '__main__':
         required=True,
         help='Path or name to the old tokenizer'
     )
-    
     parser.add_argument(
         '--new_tokenizer',
         type=str,
         required=True,
         help='Path to the new tokenizer model file'
     )
-    
     parser.add_argument(
         '--save_path',
         type=str,
         required=True,
         help='Path to save the merged tokenizer'
     )
-    
     parser.add_argument(
         '--tokenizer_name',
         type=str,
         required=True,
         help='Name for the new tokenizer'
     )
+    parser.add_argument(
+        '--lang_codes',
+        nargs='*',
+        type=str,
+        default=None,
+        help='Additional language codes ONLY for NLLB models (e.g., --lang_codes eng_Latn rus_Cyrl)'
+    )
     
     args = parser.parse_args()
+    
+    lang_codes = args.lang_codes
+    if lang_codes is not None and len(lang_codes) == 0:
+        lang_codes = None
     
     merge_sentencepiece_tokenizers(
         path_or_name_to_old_tokenizer=args.old_tokenizer,
         path_to_new_tokenizer=args.new_tokenizer,
         path_to_save=args.save_path,
-        new_tokenizer_name=args.tokenizer_name
+        new_tokenizer_name=args.tokenizer_name,
+        nllb_additional_lang_codes=lang_codes
     )

@@ -5,6 +5,14 @@ from tqdm.auto import tqdm
 from eeve.utils.logger import get_logs_writer_logger
 
 
+def is_hex():
+    pass
+
+
+def get_eeve_embeddings_init():
+    pass
+
+
 def reinit_model_layers(
     model,
     old_tokenizer,
