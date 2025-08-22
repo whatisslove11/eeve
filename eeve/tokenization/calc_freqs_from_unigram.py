@@ -15,15 +15,14 @@ def generate_file_with_tokens_freqs(
     spm_pr = sp_pb2_model.ModelProto()
     tokenizer = spm.SentencePieceProcessor(model_file=tokenizer_model_file)
     spm_pr.ParseFromString(tokenizer.serialized_model_proto())
-
-    if spm_pr.trainer_spec.model_type != '1':
+    if spm_pr.trainer_spec.model_type != 1:
         raise ValueError(
             f"This function only supports 'unigram' tokenizer model type, "
             f"but got '{spm_pr.trainer_spec.model_type}'"
         )
 
-    tokens = [p for p in spm_pr.pieces if p.score < 0] 
-    tokens_with_freqs = [f'{token.piece.replace('_', ' ')}\t{int(math.exp(token.score) * 1_000_000)}' for token in tokens]
+    tokens = [p for p in spm_pr.pieces if p.score < 0] # все что 0, то спец токен
+    tokens_with_freqs = [f'{token.piece.replace("▁", " ")}\t{int(math.exp(token.score) * 1_000_000)}' for token in tokens]
 
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(tokens_with_freqs))
