@@ -1,0 +1,33 @@
+reader:
+  type: huggingface
+  kwargs:
+    dataset: whatisslove11/xP3x_chuvash
+    text_key: ru
+    shuffle_files: false
+    dataset_options:
+      split: train
+
+writer:
+  type: json
+  kwargs:
+    output_folder: /mnt/d/vscode_projects/eeve/working_dir/minhash_dedup/results
+
+exclusion_writer:
+  type: json
+  kwargs:
+    output_folder: /mnt/d/vscode_projects/eeve/working_dir/minhash_dedup/removed_samples
+
+hash_config:
+  precision: 64
+  hash_fc: sha1
+
+minhash_config:
+  num_buckets: 14
+  hashes_per_bucket: 8
+  n_grams: 5
+
+base_data_dir: /mnt/d/vscode_projects/eeve/working_dir/minhash_dedup
+base_logging_dir: /mnt/d/vscode_projects/eeve/working_dir/minhash_dedup/logs
+language: rus_Cyrl
+num_shards: 4
+workers: 4

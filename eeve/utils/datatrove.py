@@ -1,6 +1,26 @@
 import dataclasses
+import datatrove.pipeline.writers as writers
+import datatrove.pipeline.readers as readers
+
+from typing import Literal
 from datatrove.data import Document
 from huggingface_hub import hf_hub_download
+
+
+NAME2READER = {
+    "csv": readers.CSVReader,
+    "ipc": readers.IpcReader,
+    "warc": readers.WarcReader,
+    "json": readers.JsonlReader,
+    "parquet": readers.ParquetReader,
+    "huggingface": readers.HuggingFaceDatasetReader,
+}
+
+NAME2WRITER = {
+    "json": writers.JsonlWriter,
+    "parquet": writers.ParquetWriter,
+    "huggingface": writers.HuggingFaceDatasetWriter
+}
 
 
 def _reader_adapter_with_column_info(self, data: dict, path: str, id_in_file: int | str):
@@ -79,3 +99,39 @@ def fasttext_model_get_path(
     if not hf_repo_name and not local_model_path:
         raise ValueError("А че качать-то")
     return local_model_path
+
+REGISTRY = {
+    "reader": (NAME2READER, _reader_adapter_with_column_info),
+    "writer": (NAME2WRITER, _writer_adapter_with_column_restore),
+}
+
+
+def create_io_object(
+    cfg: dict,
+    type: Literal["reader", "writer"],
+    use_adapter: bool
+):
+    if type not in REGISTRY:
+        raise ValueError(f"type must be either 'reader' or 'writer', got {type}")
+
+    registry, adapter_fn = REGISTRY[type]
+    io_type = cfg["type"]
+    kwargs = cfg.get("kwargs", {})
+
+    if io_type not in registry:
+        raise ValueError(f"Unknown {cfg['type']=}'. Available: {', '.join(registry.keys())}")
+    
+    if use_adapter:
+        kwargs['adapter'] = adapter_fn
+
+    io_class = registry[io_type]
+    return io_class(**kwargs)
+
+
+def create_reader_and_writer(config: dict, use_adapter_key: str = 'use_column_info_adapter'):
+    reader_cfg, writer_cfg = config['reader'], config['writer']
+    use_adapter = config.get(use_adapter_key, False)
+    reader = create_io_object(cfg=reader_cfg, type="reader", use_adapter=use_adapter)
+    writer = create_io_object(cfg=writer_cfg, type="writer", use_adapter=use_adapter)
+
+    return reader, writer

@@ -1,0 +1,56 @@
+{
+    "pipeline": [
+        {
+            "limit": -1,
+            "skip": 0,
+            "text_key": "text_1",
+            "id_key": "id",
+            "adapter": "<bound method _reader_adapter_with_column_info of \ud83d\udcd6 - READER: \ud83d\udd22 Csv>",
+            "_empty_warning": false,
+            "default_metadata": null,
+            "data_folder": "DataFolder(path='/mnt/d/vscode_projects/eeve/examples/files/parallel_corpus_process.csv', fs=<fsspec.implementations.local.LocalFileSystem object at 0x719c8a9e1060>)",
+            "paths_file": null,
+            "recursive": true,
+            "glob_pattern": null,
+            "shuffle_files": false,
+            "file_progress": false,
+            "doc_progress": false,
+            "compression": "infer",
+            "empty_warning": false
+        },
+        {
+            "list_path": [
+                "text",
+                "metadata['text_2']"
+            ],
+            "func": "<function process_string at 0x719c8a83beb0>"
+        },
+        {
+            "list_path": [
+                "text",
+                "metadata['text_2']"
+            ]
+        },
+        {
+            "compression": "gzip",
+            "output_folder": "DataFolder(path='/mnt/d/vscode_projects/eeve/examples/files', fs=<fsspec.implementations.local.LocalFileSystem object at 0x719c8a9e1060>)",
+            "max_file_size": -1,
+            "file_id_counter": {},
+            "output_filename": "<string.Template object at 0x719cc3493130>",
+            "output_mg": "<datatrove.io.OutputFileManager object at 0x719cc3493b20>",
+            "adapter": "<bound method _writer_adapter_with_column_restore of \ud83d\udcbd - WRITER: \ud83d\udc3f Jsonl>",
+            "expand_metadata": false
+        }
+    ],
+    "logging_dir": "DataFolder(path='/mnt/d/vscode_projects/eeve/examples/logs/2025-08-24_13-54-09_smhks', fs=<fsspec.implementations.local.LocalFileSystem object at 0x719c8a9e1060>)",
+    "skip_completed": false,
+    "randomize_start_duration": 0,
+    "tasks": 1,
+    "workers": 1,
+    "start_method": "forkserver",
+    "local_tasks": 1,
+    "local_rank_offset": 0,
+    "depends": null,
+    "_launched": true,
+    "world_size": 1
+}

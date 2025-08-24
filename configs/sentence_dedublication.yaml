@@ -1,0 +1,27 @@
+reader:
+  type: huggingface
+  kwargs:
+    dataset: whatisslove11/xP3x_chuvash
+    text_key: ru
+    shuffle_files: false
+    dataset_options:
+      split: train
+
+writer:
+  type: json
+  kwargs:
+    output_folder: /mnt/d/vscode_projects/eeve/working_dir/sentence_dedup/results
+
+dedup_config:
+  n_sentences: 1
+  split_sentences: false
+  only_dedup_in_index: true
+  min_doc_words: 0
+  min_num_sentences: -1
+
+use_column_info_adapter: True
+base_data_dir: /mnt/d/vscode_projects/eeve/working_dir/sentence_dedup
+base_logging_dir: /mnt/d/vscode_projects/eeve/working_dir/logs/sentence_dedup
+language: rus_Cyrl
+num_shards: 4
+workers: 4
