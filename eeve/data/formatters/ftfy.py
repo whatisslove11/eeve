@@ -4,12 +4,13 @@ from eeve.data.formatters.base import AdvancedFormatter
 
 
 class FTFYFormatter(AdvancedFormatter):
-     name = "😎 FTFY"
+    name = "😎 FTFY"
     _requires_dependencies = ["ftfy"]
 
     def __init__(
         self,
         # these two border a bit on the strict formatting, but they're mostly display related
+        list_path: str | list[str] = "text",
         unescape_html: str | bool = "auto",
         remove_terminal_escapes: bool = True,
         # this is the main thing we are interested in
@@ -29,7 +30,7 @@ class FTFYFormatter(AdvancedFormatter):
         remove_control_chars: bool = True,  # they're literally useless
         normalization: Literal["NFC", "NFD", "NFKC", "NFKD"] | None = None,  # no normalization
     ):
-        super().__init__()
+        super().__init__(list_path=list_path)
         from ftfy import TextFixerConfig
 
         self.config = TextFixerConfig(

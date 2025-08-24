@@ -17,7 +17,7 @@ class LID:
         """
         Predicts the likelihood of the document being written in given languages, alongside with the most likely language
         Args:
-            doc (Document): Document to predict languages for
+            text (str): Text to predict languages for
         Returns:
             dict[str, float]: Languages and score
         """
@@ -92,7 +92,7 @@ class LanguageFilter(BaseFilter):
         Args:
             languages: list of languages to keep. None for all
             language_threshold: language_threshold minimum score to accept a document
-            exclusion_writer:
+            exclusion_writer: writer for saving intermediate execution results
             label_only: if True, only the language label is added to the metadata and no documents are removed
             keep_top_pairs_threshold: keep a list of all language pairs with at least this score. -1 to disable
             content_extractor: function for extracting data from an object Document (initially only filtering of doc.text is supported)
