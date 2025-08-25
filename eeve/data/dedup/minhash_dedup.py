@@ -124,7 +124,7 @@ def run_minhash_deduplication(path_to_yaml_config: str) -> None:
     EXCLUSION_WRITER = create_io_object(
         cfg=yaml_config['exclusion_writer'],
         type='writer',
-        use_adapter=False
+        use_adapter=yaml_config['use_column_info_adapter_for_exclusion_writer']
     ) if yaml_config.get('exclusion_writer') else None
     
     paths = MinhashPaths(

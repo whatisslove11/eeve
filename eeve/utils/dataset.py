@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 from datasets import load_dataset, Dataset, DatasetDict
 from eeve.utils.logger import get_logger
 
-logger = get_logger()
-
 
 @dataclass
 class DatasetConfig:
