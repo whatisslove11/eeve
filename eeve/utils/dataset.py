@@ -15,7 +15,7 @@ class DatasetConfig:
 
 def _load_dataset_from_path(path: str, test_size: float | None = None, load_kwargs = None) -> DatasetDict:  
     load_kwargs = load_kwargs or {}
-    if path.endswith("jsonl") or path.endswith("json"):
+    if path.endswith("jsonl") or path.endswith("json") or path.endswith("gz"):
         dataset = load_dataset("json", data_files=path, **load_kwargs)
     elif path.endswith("csv"):
         dataset = load_dataset("csv", data_files=path, **load_kwargs)

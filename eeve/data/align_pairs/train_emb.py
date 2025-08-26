@@ -1,15 +1,17 @@
 import os
 import hydra
-import OmegaConf
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 import torch
 import sentence_transformers
 from sentence_transformers import SentenceTransformerTrainer
 from eeve.utils.dataset import _load_dataset_from_path
 
+import warnings
+warnings.filterwarnings('ignore')
 
-@hydra.main(config_path="../../training_configs", config_name="st_hydra_config", version_base=None)
+
+@hydra.main(config_path="../../../configs", config_name="st_hydra_config", version_base=None)
 def train(cfg: DictConfig):
     train_dataset = None
     eval_dataset = None
@@ -74,9 +76,6 @@ def train(cfg: DictConfig):
         source_sentences=source_sentences,
         target_sentences=target_sentences,
     )
-
-    print(evaluator.name)
-    print(type(evaluator.source_sentences))
 
     training_args = hydra.utils.instantiate(cfg.training)
     trainer = SentenceTransformerTrainer(
