@@ -135,3 +135,12 @@ def create_reader_and_writer(config: dict, use_adapter_key: str = 'use_column_in
     writer = create_io_object(cfg=writer_cfg, type="writer", use_adapter=use_adapter)
 
     return reader, writer
+
+
+def _get_value(doc: Document, list_paths: list[str]) -> list[str]:
+    data = []
+    context = {"doc": doc}
+
+    for path in list_paths:
+        data.append(eval(f"doc.{path}", context))
+    return data

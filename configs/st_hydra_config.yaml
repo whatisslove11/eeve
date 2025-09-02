@@ -1,3 +1,4 @@
+seed: 42
 run_name: me5-instruct-chuvash-train
 output_base_dir: ./experiments
 
