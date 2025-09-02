@@ -69,6 +69,5 @@ class BadTranslationsFilter(BaseFilter):
         q_emb = embeddings[:bs]
         p_emb = embeddings[bs:]
         sims = (q_emb * p_emb).sum(dim=1)
-        print(sims)
 
         return (sims > self.sim_score).tolist()

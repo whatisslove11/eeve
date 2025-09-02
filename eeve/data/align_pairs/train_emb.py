@@ -6,6 +6,7 @@ import torch
 import sentence_transformers
 from sentence_transformers import SentenceTransformerTrainer
 from eeve.utils.dataset import _load_dataset_from_path
+from eeve.utils.seed import seed_everything
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -13,6 +14,8 @@ warnings.filterwarnings('ignore')
 
 @hydra.main(config_path="../../../configs", config_name="st_hydra_config", version_base=None)
 def train(cfg: DictConfig):
+    seed_everything(cfg.seed)
+    
     train_dataset = None
     eval_dataset = None
     load_kwargs = OmegaConf.to_container(
@@ -45,8 +48,7 @@ def train(cfg: DictConfig):
         eval_dataset = eval_ds_dict[cfg.data.eval.get('split', 'train')]
 
     if train_dataset is None or eval_dataset is None:
-        raise ValueError("Не удалось определить датасеты для обучения и оценки. "
-                         "Проверьте конфигурацию в `data.eval`.")
+        raise ValueError("Unable to determine the datasets for training and evaluation. Check the configuration in `data.eval`.")
 
     if cfg.preprocessing.get('apply_function'):
         preprocess_func = hydra.utils.get_method(cfg.preprocessing.apply_function._target_)
