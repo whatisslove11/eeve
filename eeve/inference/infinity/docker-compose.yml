@@ -1,0 +1,21 @@
+version: '3.10'
+
+services:
+  embeddings-server:
+    build: .
+    ports:
+      - "8888:8888" 
+    environment:
+      - EMBEDDING_MODEL_NAME=deepvk/USER-bge-m3  
+      - DEVICE=cuda
+      - ENGINE=torch
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface  
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
