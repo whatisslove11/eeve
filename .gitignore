@@ -200,7 +200,9 @@ datasets/
 TODO.md
 eeve/data/Notebooks/
 _models/
+_trained_models/
 rd_test.ipynb
 rad_tst/
 _my_configs/
 outputs/
+eeve/utils/me5/py

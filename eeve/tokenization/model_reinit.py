@@ -5,12 +5,43 @@ from tqdm.auto import tqdm
 from eeve.utils.logger import get_logs_writer_logger
 
 
-def is_hex():
-    pass
+def _is_space_marker(tstr: str) -> bool:
+    if tstr == "▁":
+        return True
+    if tstr in {"Ġ", "Ċ", "ÂĊ"}:
+        return True
+    return False
 
+def get_eeve_embeddings_for_input(input_weights, token, old_tokenizer):
+    tokens = old_tokenizer(token, add_special_tokens=False)['input_ids']
+    subword_tokens_embedding = input_weights[tokens].mean(dim=0)
+    return subword_tokens_embedding
 
-def get_eeve_embeddings_init():
-    pass
+def get_eeve_embeddings_for_output(output_weights, token, old_tokenizer, clear_tokenization: bool = False):
+    tokens = old_tokenizer(token, add_special_tokens=False)['input_ids']
+    if clear_tokenization:
+        unk_id = getattr(old_tokenizer, "unk_token_id", None)
+        tokens_str = old_tokenizer.convert_ids_to_tokens(tokens)
+        all_special_ids = set(getattr(old_tokenizer, "all_special_ids", []) or [])
+
+        chosen_id = None
+        for tid, tstr in zip(tokens, tokens_str):
+            if tid in all_special_ids:
+                continue
+            if _is_space_marker(tstr):
+                continue
+            if unk_id is not None and tid == unk_id:
+                continue
+            # add bytes
+            chosen_id = tid
+            break
+        # maybe mean vec?
+        if chosen_id is None:
+            chosen_id = tokens[0]
+        first_subword_token_embedding = output_weights[chosen_id]
+    else:
+        first_subword_token_embedding = output_weights[tokens[0]]
+    return first_subword_token_embedding
 
 
 def reinit_model_layers(
@@ -18,12 +49,9 @@ def reinit_model_layers(
     old_tokenizer,
     new_tokenizer,
     reinit_mode: Literal['small_init', 'mean', 'eeve'],
-    tie_weights: bool,
+    tie_weights: bool = False,
     write_logs: bool = False
 ):
-    if reinit_mode == "eeve":
-        raise NotImplementedError
-    
     if write_logs:
         logger = get_logs_writer_logger()
     
@@ -58,8 +86,7 @@ def reinit_model_layers(
 
                 if token_idx is None:
                     if reinit_mode == "eeve":
-                        # заготовка на будущее
-                        continue
+                        i_token_vector_input = get_eeve_embeddings_for_input(embeddings_src, token, old_tokenizer)
                     else:
                         i_token_vector_input = embedding_mean_vector
                 else:
@@ -68,7 +95,10 @@ def reinit_model_layers(
 
                 if new_lm_head is not None and not tie_weights:
                     if token_idx is None:
-                        i_token_vector_output = lm_head_mean_vector
+                        if reinit_mode == "eeve":
+                            i_token_vector_output = get_eeve_embeddings_for_output(lm_head_src, token, old_tokenizer)
+                        else:
+                            i_token_vector_output = lm_head_mean_vector
                     else:
                         i_token_vector_output = lm_head_src[token_idx].to(dtype)
                     new_lm_head.weight.data[i].copy_(i_token_vector_output)
@@ -77,9 +107,10 @@ def reinit_model_layers(
                     logger.info(f'token id in new vocab: {i};\ttoken: {token};\t token id in old vocab: {token_idx}')
 
     elif reinit_mode == 'small_init':
-        pass
+        if write_logs:
+            logger.info(f"Using small_init: embeddings initialized with normal distribution (std={initializer_range})")
     else:
-        raise ValueError
+        raise ValueError(f"Unsupported reinit_mode: '{reinit_mode}'. Must be one of: 'small_init', 'mean', 'eeve'")
     
     model.set_input_embeddings(new_emb_layer)
     if new_lm_head is not None:
