@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "eeve"
 version = "0.1.0"
-description = "Eeve: a toolkit for data processing and training machine translation models "
+description = "Eeve: a toolkit for data processing and training machine translation models"
 requires-python = ">=3.10"
 dependencies = [
     "transformers<=4.53.3",
