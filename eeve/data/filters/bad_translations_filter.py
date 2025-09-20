@@ -9,14 +9,17 @@ from eeve.utils.datatrove import _get_value
 
 
 class BadTranslationsFilter(BaseFilter):
+    name = "🔄 Bad Translations Cleaner"
+
     def __init__(
         self,
+        client: OpenAI,
+        model_name: str,
         list_path: list[str],
         sim_score: float,
         normalize: bool = True,
         query_prepocess_fn: None = None,
         passage_prepocess_fn: None = None,
-        base_url: str = "http://localhost:8888",
         exclusion_writer: DiskWriter = None
     ):
         super().__init__(exclusion_writer)
@@ -30,10 +33,9 @@ class BadTranslationsFilter(BaseFilter):
         self.list_path = list_path
         self.sim_score = sim_score
         
-        self.client = OpenAI(
-            api_key="dummy-key",  
-            base_url=base_url
-        )
+        self.client = client
+        self.model_name = model_name
+        
         self.normailze = normalize
         self.query_prepocess_fn = query_prepocess_fn
         self.passage_prepocess_fn = passage_prepocess_fn
@@ -57,7 +59,7 @@ class BadTranslationsFilter(BaseFilter):
         docs = q_batch + p_batch
 
         response = self.client.embeddings.create(
-            model="deepvk/USER-bge-m3",
+            model=self.model_name,
             input=docs
         )
 
