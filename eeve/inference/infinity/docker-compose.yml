@@ -6,7 +6,7 @@ services:
     ports:
       - "8888:8888" 
     environment:
-      - EMBEDDING_MODEL_NAME=deepvk/USER-bge-m3  
+      - EMBEDDING_MODEL_NAME=ai-forever/FRIDA
       - DEVICE=cuda
       - ENGINE=torch
     volumes:

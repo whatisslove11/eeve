@@ -17,12 +17,12 @@ class BadTranslationsFilter(BaseFilter):
         model_name: str,
         list_path: list[str],
         sim_score: float,
-        normalize: bool = True,
+        batch_size: int = 2,
         query_prepocess_fn: None = None,
         passage_prepocess_fn: None = None,
         exclusion_writer: DiskWriter = None
     ):
-        super().__init__(exclusion_writer)
+        super().__init__(exclusion_writer, batch_size)
 
         if len(list_path) != 2:
             raise ValueError(f"list_path must contain exactly 2 paths, got {len(list_path)}")
@@ -36,7 +36,6 @@ class BadTranslationsFilter(BaseFilter):
         self.client = client
         self.model_name = model_name
         
-        self.normailze = normalize
         self.query_prepocess_fn = query_prepocess_fn
         self.passage_prepocess_fn = passage_prepocess_fn
 
@@ -64,9 +63,7 @@ class BadTranslationsFilter(BaseFilter):
         )
 
         embeddings = torch.tensor([data.embedding for data in response.data])
-
-        if self.normailze:
-            embeddings = F.normalize(embeddings, p=2, dim=1)
+        embeddings = F.normalize(embeddings, p=2, dim=1)
 
         q_emb = embeddings[:bs]
         p_emb = embeddings[bs:]

@@ -1,13 +1,23 @@
 import unittest
 
 from datatrove.data import Document
-from eeve.data.filters import RegexCounterFilter, LengthRatioFilter, LanguageFilter
+from eeve.data.filters import (
+    BadTranslationsFilter,
+    RegexCounterFilter,
+    LengthRatioFilter,
+    LanguageFilter,
+)
 from eeve.utils.datatrove import fasttext_model_get_path
 
-from .utils import require_fasttext, require_hf_hub
+from .utils import (
+    require_fasttext,
+    require_hf_hub,
+    require_openai,
+)
 
 FLOAT_BASIC_PATTERN = r"[+-]?\d+(?:\.\d+)?"
 FLOAT_EXTENDED_PATTERN = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
+TASK_DESC = "Retrieve parallel sentences."
 
 TEXT_EN_PARALLEL = (
     "During the annual audit, we reviewed 3 invoices for the project. The net amount was 17.75 USD, "
@@ -130,3 +140,34 @@ class TestFilters(unittest.TestCase):
 
         self.assertFalse(lang_filter.filter(doc_fr))
         self.assertEqual(doc_fr.metadata["language"], "fra_Latn")
+
+    @require_openai
+    def test_bad_translations_filter(self):
+        from openai import OpenAI
+        # don't forget to start the Infinity server (inference/infinity).
+        client = OpenAI(
+            base_url="http://localhost:8888",
+            api_key="dummy_key"
+        )
+
+        bt_filter = BadTranslationsFilter(
+            client=client,
+            model_name="",
+            list_path=["text", "metadata['test_text']"],
+            sim_score=0.8,
+            batch_size=6,
+        )
+
+        docs = [
+            make_doc(TEXT_EN_PARALLEL, metadata_text=TEXT_RU_PARALLEL),
+            make_doc(TEXT_EN_PARALLEL, metadata_text="Сегодня солнечная погода, и я люблю мороженое."),
+            make_doc("The cat is sleeping on the sofa.", metadata_text="Кот спит на диване."),
+            make_doc("We installed three servers and upgraded the network firmware.", metadata_text="Мы купили три яблока и один апельсин."),
+            make_doc("Hello world!", metadata_text="Привет, мир!"),
+            make_doc("He loves to play basketball on weekends.", metadata_text="Это статья о квантовой механике и матрицах плотности."),
+        ]
+        expected = [True, False, True, False, True, False]
+        result = bt_filter.filter_batch(docs)
+
+        self.assertTrue(all(isinstance(x, bool) for x in result))
+        self.assertEqual(result, expected, f"Expected {expected}, got {result}")
