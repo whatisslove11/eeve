@@ -1,21 +1,13 @@
-version: '3.10'
-
 services:
   embeddings-server:
     build: .
     ports:
       - "8888:8888" 
     environment:
-      - EMBEDDING_MODEL_NAME=ai-forever/FRIDA
+      - EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-large-instruct
       - DEVICE=cuda
       - ENGINE=torch
     volumes:
       - ~/.cache/huggingface:/root/.cache/huggingface  
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    gpus: all
     restart: unless-stopped

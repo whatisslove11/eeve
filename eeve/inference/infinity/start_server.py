@@ -1,7 +1,6 @@
 import os
 import logging
 import uvicorn
-import torch.nn.functional as F
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from typing import AsyncGenerator
@@ -12,6 +11,7 @@ from schema import EmbeddingRequest, EmbeddingResponse, EmbeddingObject
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -66,8 +66,7 @@ async def create_embeddings(request: EmbeddingRequest) -> EmbeddingResponse:
     
     try:
         embeddings, usage = await app.state.engine.embed(request.input)
-        embeddings = F.normalize(embeddings, p=2, dim=1)
-        
+
         data = [
             EmbeddingObject(embedding=embedding.tolist(), index=i)
             for i, embedding in enumerate(embeddings)

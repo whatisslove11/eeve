@@ -154,10 +154,7 @@ def faiss_deduplicate_two_pass(
     ordered = [results_by_start[start] for start in sorted(results_by_start)]
 
     if not ordered:
-        return (
-            np.empty((0, embeddings.shape[1]), dtype=embeddings.dtype),
-            np.empty((0,), dtype=int),
-        )
+        raise ValueError("Empty input: embeddings has shape (0, d); nothing to deduplicate")
 
     all_unique_embeddings = [ue for ue, _ in ordered]
     all_unique_indices = [ui for _, ui in ordered]
@@ -165,15 +162,14 @@ def faiss_deduplicate_two_pass(
     uniques_stage1 = np.vstack(all_unique_embeddings)
     indices_stage1 = np.concatenate(all_unique_indices)
 
-    if len(batch_starts) < 2:
-        return embeddings[indices_stage1], indices_stage1
+    if len(batch_starts) > 1:
+        _, keep_indices_local = _faiss_deduplicate_single_v3(
+            uniques_stage1,
+            similarity_threshold,
+            index_class,
+            index_args,
+        )
+        final_indices = indices_stage1[keep_indices_local]
 
-    _, keep_indices_local = _faiss_deduplicate_single_v3(
-        uniques_stage1,
-        similarity_threshold,
-        index_class,
-        index_args,
-    )
-    final_indices = indices_stage1[keep_indices_local]
-
-    return embeddings[final_indices], final_indices
+        return embeddings[final_indices], final_indices
+    return embeddings[indices_stage1], indices_stage1
