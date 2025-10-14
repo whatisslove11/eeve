@@ -19,7 +19,7 @@ dependencies = [
     "datasets>=3.2.0",
     "tqdm",
     "PyYAML>=5.1.0"
-]
+] # sacrebleu + evaluate
 
 [tool.setuptools]
 packages = ["eeve"]   
