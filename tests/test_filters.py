@@ -1,19 +1,20 @@
 import unittest
 
-from datatrove.data import Document
 from eeve.data.filters import (
     BadTranslationsFilter,
-    RegexCounterFilter,
-    LengthRatioFilter,
     LanguageFilter,
+    LengthRatioFilter,
+    RegexCounterFilter,
 )
 from eeve.utils.datatrove import fasttext_model_get_path
 
 from .utils import (
+    make_doc,
     require_fasttext,
     require_hf_hub,
     require_openai,
 )
+
 
 FLOAT_BASIC_PATTERN = r"[+-]?\d+(?:\.\d+)?"
 FLOAT_EXTENDED_PATTERN = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
@@ -39,11 +40,6 @@ TEXT_FR_PARALLEL = (
 )
 TEXT_FR_PARALLEL_DIFF = TEXT_FR_PARALLEL.replace("17.75", "17.76")
 
-def make_doc(text: str, metadata_text: str | None = None):
-    if metadata_text is None:
-        metadata_text = text
-    return Document(text=text, id="0", metadata={"test_text": metadata_text})
-
 
 class TestFilters(unittest.TestCase):
     def check_filter(self, filter, doc, filter_reason):
@@ -65,23 +61,33 @@ class TestFilters(unittest.TestCase):
         self.assertTrue(counter_basic.filter(doc_parallel_en_ru))
         self.assertTrue(counter_extended.filter(doc_parallel_en_ru))
 
-        doc_parallel_en_fr_diff = make_doc(TEXT_EN_PARALLEL, metadata_text=TEXT_FR_PARALLEL_DIFF)
+        doc_parallel_en_fr_diff = make_doc(
+            TEXT_EN_PARALLEL, metadata_text=TEXT_FR_PARALLEL_DIFF
+        )
         self.assertFalse(counter_basic.filter(doc_parallel_en_fr_diff))
         self.assertFalse(counter_extended.filter(doc_parallel_en_fr_diff))
 
-        doc_equal_simple = make_doc("Order 3 units, price -5.75, tax +2.00 and 12 items; total 17.75")
+        doc_equal_simple = make_doc(
+            "Order 3 units, price -5.75, tax +2.00 and 12 items; total 17.75"
+        )
         self.assertTrue(counter_basic.filter(doc_equal_simple))
         self.assertTrue(counter_extended.filter(doc_equal_simple))
 
-        doc_diff_last_digit = make_doc("v1=10 and v2=2.50", metadata_text="v1=10 and v2=2.51")
+        doc_diff_last_digit = make_doc(
+            "v1=10 and v2=2.50", metadata_text="v1=10 and v2=2.51"
+        )
         self.assertFalse(counter_basic.filter(doc_diff_last_digit))
         self.assertFalse(counter_extended.filter(doc_diff_last_digit))
 
-        doc_equal_with_scientific = make_doc("values: 1e-3 and 2.5E+10; extra: .75 and 1.")
+        doc_equal_with_scientific = make_doc(
+            "values: 1e-3 and 2.5E+10; extra: .75 and 1."
+        )
         self.assertTrue(counter_basic.filter(doc_equal_with_scientific))
         self.assertTrue(counter_extended.filter(doc_equal_with_scientific))
 
-        doc_scientific_split = make_doc("a=1e-3 b=2.5E+10", metadata_text="a 1 -3 b 2.5 +10")
+        doc_scientific_split = make_doc(
+            "a=1e-3 b=2.5E+10", metadata_text="a 1 -3 b 2.5 +10"
+        )
         self.assertTrue(counter_basic.filter(doc_scientific_split))
         self.assertFalse(counter_extended.filter(doc_scientific_split))
 
@@ -94,8 +100,16 @@ class TestFilters(unittest.TestCase):
             list_path=["text", "metadata['test_text']"],
             ratio_threshold=3.0,
         )
-        self.assertTrue(length_filter_parallel.filter(make_doc(TEXT_EN_PARALLEL, metadata_text=TEXT_RU_PARALLEL)))
-        self.assertTrue(length_filter_parallel.filter(make_doc(TEXT_RU_PARALLEL, metadata_text=TEXT_FR_PARALLEL)))
+        self.assertTrue(
+            length_filter_parallel.filter(
+                make_doc(TEXT_EN_PARALLEL, metadata_text=TEXT_RU_PARALLEL)
+            )
+        )
+        self.assertTrue(
+            length_filter_parallel.filter(
+                make_doc(TEXT_RU_PARALLEL, metadata_text=TEXT_FR_PARALLEL)
+            )
+        )
 
         length_filter = LengthRatioFilter(
             list_path=["text", "metadata['test_text']"],
@@ -117,10 +131,35 @@ class TestFilters(unittest.TestCase):
         doc_empty_side = make_doc("nonempty", metadata_text="")
         self.check_filter(length_filter, doc_empty_side, "empty_text")
 
+        length_filter_words = LengthRatioFilter(
+            list_path=["text", "metadata['test_text']"],
+            ratio_threshold=2.0,
+            calc_method="words",
+        )
+
+        doc_same_words = make_doc(
+            "The quick brown fox jumps over the lazy dog",
+            metadata_text="Быстрая коричневая лиса прыгает через ленивую собаку",
+        )
+        self.assertTrue(length_filter_words.filter(doc_same_words))
+
+        doc_words_within = make_doc(
+            "I went to the store yesterday and bought some groceries",
+            metadata_text="Вчера я ходил в магазин и купил продукты",
+        )
+        self.assertTrue(length_filter_words.filter(doc_words_within))
+
+        doc_words_over = make_doc(
+            "Hello world", metadata_text="Привет, мир, как дела, что нового у тебя"
+        )
+        self.assertFalse(length_filter_words.filter(doc_words_over))
+
     @require_fasttext
     @require_hf_hub
     def test_language_filter(self):
-        model_path = fasttext_model_get_path(hf_repo_name="cis-lmu/glotlid", filename="model.bin")
+        model_path = fasttext_model_get_path(
+            hf_repo_name="cis-lmu/glotlid", filename="model.bin"
+        )
         lang_filter = LanguageFilter(
             model_download_url=model_path,
             model_subfolder="fasttext_model",
@@ -144,11 +183,9 @@ class TestFilters(unittest.TestCase):
     @require_openai
     def test_bad_translations_filter(self):
         from openai import OpenAI
+
         # don't forget to start the Infinity server (inference/infinity).
-        client = OpenAI(
-            base_url="http://localhost:8888",
-            api_key="dummy_key"
-        )
+        client = OpenAI(base_url="http://localhost:8888", api_key="dummy_key")
 
         bt_filter = BadTranslationsFilter(
             client=client,
@@ -160,11 +197,22 @@ class TestFilters(unittest.TestCase):
 
         docs = [
             make_doc(TEXT_EN_PARALLEL, metadata_text=TEXT_RU_PARALLEL),
-            make_doc(TEXT_EN_PARALLEL, metadata_text="Сегодня солнечная погода, и я люблю мороженое."),
-            make_doc("The cat is sleeping on the sofa.", metadata_text="Кот спит на диване."),
-            make_doc("We installed three servers and upgraded the network firmware.", metadata_text="Мы купили три яблока и один апельсин."),
+            make_doc(
+                TEXT_EN_PARALLEL,
+                metadata_text="Сегодня солнечная погода, и я люблю мороженое.",
+            ),
+            make_doc(
+                "The cat is sleeping on the sofa.", metadata_text="Кот спит на диване."
+            ),
+            make_doc(
+                "We installed three servers and upgraded the network firmware.",
+                metadata_text="Мы купили три яблока и один апельсин.",
+            ),
             make_doc("Hello world!", metadata_text="Привет, мир!"),
-            make_doc("He loves to play basketball on weekends.", metadata_text="Это статья о квантовой механике и матрицах плотности."),
+            make_doc(
+                "He loves to play basketball on weekends.",
+                metadata_text="Это статья о квантовой механике и матрицах плотности.",
+            ),
         ]
         expected = [True, False, True, False, True, False]
         result = bt_filter.filter_batch(docs)

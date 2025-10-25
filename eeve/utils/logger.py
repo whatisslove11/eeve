@@ -1,14 +1,15 @@
 import os
-from logging import getLogger, INFO, FileHandler, StreamHandler, Formatter
+from logging import INFO, FileHandler, Formatter, StreamHandler, getLogger
+
 from eeve.files import LOGS_PATH
 
 
 def get_logger():
     logger = getLogger(__name__)
-    
+
     if logger.handlers:
-        return logger 
-    
+        return logger
+
     logger.setLevel(INFO)
     handler = StreamHandler()
     handler.setFormatter(Formatter("%(asctime)s - %(message)s", datefmt="%H:%M:%S"))
@@ -17,7 +18,7 @@ def get_logger():
     return logger
 
 
-def get_logs_writer_logger(logging_dir=LOGS_PATH, filename='logs.log'):
+def get_logs_writer_logger(logging_dir=LOGS_PATH, filename="logs.log"):
     os.makedirs(logging_dir, exist_ok=True)
     log_path = os.path.join(logging_dir, filename)
 

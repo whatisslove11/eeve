@@ -1,5 +1,6 @@
 # port datatrove formatters to AdvancedFormatter
 from typing import Literal
+
 from eeve.data.formatters.base import AdvancedFormatter
 
 
@@ -28,7 +29,8 @@ class FTFYFormatter(AdvancedFormatter):
         fix_line_breaks: bool = False,  # on the fence about this one
         fix_surrogates: bool = True,  # encoding related so ok
         remove_control_chars: bool = True,  # they're literally useless
-        normalization: Literal["NFC", "NFD", "NFKC", "NFKD"] | None = None,  # no normalization
+        normalization: Literal["NFC", "NFD", "NFKC", "NFKD"]
+        | None = None,  # no normalization
     ):
         super().__init__(list_path=list_path)
         from ftfy import TextFixerConfig

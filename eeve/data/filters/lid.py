@@ -1,11 +1,11 @@
-from typing import Callable
 from abc import abstractmethod
+from typing import Callable
 
 from datatrove.data import Document
 from datatrove.io import cached_asset_path_or_download
-from datatrove.utils._import_utils import check_required_dependencies
 from datatrove.pipeline.filters.base_filter import BaseFilter
 from datatrove.pipeline.writers.disk_base import DiskWriter
+from datatrove.utils._import_utils import check_required_dependencies
 
 
 class LID:
@@ -28,11 +28,12 @@ class FastTextLID(LID):
     MODEL_URL = None
     MODEL_SUBFOLDER = None
 
-    def __init__(self,
+    def __init__(
+        self,
         model_download_url: str,
         model_subfolder: str,
         languages: list[str] | None = None,
-        k: int = -1
+        k: int = -1,
     ) -> None:
         """
         Args:
@@ -62,7 +63,9 @@ class FastTextLID(LID):
 
     def predict(self, text: str) -> tuple[tuple[str, int], dict[str, float]]:
         langs, scores = self.model.predict(text.replace("\n", " "), k=self.k)
-        lang_pairs = {lang.split("__")[2]: score.item() for lang, score in zip(langs, scores)}
+        lang_pairs = {
+            lang.split("__")[2]: score.item() for lang, score in zip(langs, scores)
+        }
         best_lang_pair = max(lang_pairs.items(), key=lambda x: x[1])
         return best_lang_pair, {
             lang: lang_pairs.get(lang, 0.0) for lang in self.languages
@@ -83,7 +86,7 @@ class LanguageFilter(BaseFilter):
         exclusion_writer: DiskWriter = None,
         label_only: bool = False,
         keep_top_pairs_threshold: float = -1,
-        content_extractor: Callable[[Document], str] = lambda doc: doc.text
+        content_extractor: Callable[[Document], str] = lambda doc: doc.text,
     ):
         """
         filters if the predicted language is not among given language or if the language score is below language
@@ -105,7 +108,7 @@ class LanguageFilter(BaseFilter):
         self.model = FastTextLID(
             model_download_url=model_download_url,
             model_subfolder=model_subfolder,
-            languages=languages
+            languages=languages,
         )
         self.label_only = label_only
         self.keep_top_pairs_threshold = keep_top_pairs_threshold
@@ -123,7 +126,11 @@ class LanguageFilter(BaseFilter):
                     doc.metadata[f"top_language_{key}_score"] = value
         return (
             self.label_only
-            or (self.languages and any(score > self.language_threshold for score in lang_pairs.values()))
+            or (
+                self.languages
+                and any(
+                    score > self.language_threshold for score in lang_pairs.values()
+                )
+            )
             or (self.languages is None and lang_score > self.language_threshold)
         )
-    

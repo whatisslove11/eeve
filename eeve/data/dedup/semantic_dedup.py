@@ -23,7 +23,7 @@ def _faiss_deduplicate_single_v3(
     result = index.range_search(embeddings, similarity_threshold)
 
     # Extract result components: lims indicate result ranges per query, D is distances, I are indices
-    lims, D, I = result
+    lims, _, I = result
 
     # Initialize a set of indices to keep and a set for visited indices
     keep = np.ones(len(embeddings), dtype=bool)
@@ -37,7 +37,6 @@ def _faiss_deduplicate_single_v3(
         # Get the start and end of the neighbors of the i-th query from lims
         start_idx, end_idx = lims[i], lims[i + 1]
         neighbors = I[start_idx:end_idx]
-        distances = D[start_idx:end_idx]
 
         # Exclude the embedding itself (distance 0 or self-index i)
         neighbors = neighbors[neighbors != i]
@@ -154,7 +153,9 @@ def faiss_deduplicate_two_pass(
     ordered = [results_by_start[start] for start in sorted(results_by_start)]
 
     if not ordered:
-        raise ValueError("Empty input: embeddings has shape (0, d); nothing to deduplicate")
+        raise ValueError(
+            "Empty input: embeddings has shape (0, d); nothing to deduplicate"
+        )
 
     all_unique_embeddings = [ue for ue, _ in ordered]
     all_unique_indices = [ui for _, ui in ordered]

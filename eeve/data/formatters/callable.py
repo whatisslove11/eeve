@@ -1,5 +1,7 @@
-from eeve.data.formatters.base import AdvancedFormatter
 from typing import Callable
+
+from eeve.data.formatters.base import AdvancedFormatter
+
 
 class CallableFormatter(AdvancedFormatter):
     name = "🔧 Custom"

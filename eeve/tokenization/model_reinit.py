@@ -1,7 +1,9 @@
+from typing import Literal
+
 import torch
 import torch.nn as nn
-from typing import Literal
 from tqdm.auto import tqdm
+
 from eeve.utils.logger import get_logs_writer_logger
 
 
@@ -12,13 +14,17 @@ def _is_space_marker(tstr: str) -> bool:
         return True
     return False
 
+
 def get_eeve_embeddings_for_input(input_weights, token, old_tokenizer):
-    tokens = old_tokenizer(token, add_special_tokens=False)['input_ids']
+    tokens = old_tokenizer(token, add_special_tokens=False)["input_ids"]
     subword_tokens_embedding = input_weights[tokens].mean(dim=0)
     return subword_tokens_embedding
 
-def get_eeve_embeddings_for_output(output_weights, token, old_tokenizer, clear_tokenization: bool = False):
-    tokens = old_tokenizer(token, add_special_tokens=False)['input_ids']
+
+def get_eeve_embeddings_for_output(
+    output_weights, token, old_tokenizer, clear_tokenization: bool = False
+):
+    tokens = old_tokenizer(token, add_special_tokens=False)["input_ids"]
     if clear_tokenization:
         unk_id = getattr(old_tokenizer, "unk_token_id", None)
         tokens_str = old_tokenizer.convert_ids_to_tokens(tokens)
@@ -48,13 +54,13 @@ def reinit_model_layers(
     model,
     old_tokenizer,
     new_tokenizer,
-    reinit_mode: Literal['small_init', 'mean', 'eeve'],
+    reinit_mode: Literal["small_init", "mean", "eeve"],
     tie_weights: bool = False,
-    write_logs: bool = False
+    write_logs: bool = False,
 ):
     if write_logs:
         logger = get_logs_writer_logger()
-    
+
     vocab_size = len(new_tokenizer.get_vocab())
     dtype = model.get_input_embeddings().weight.dtype
     tie_weights = getattr(model.config, "tie_word_embeddings", False) or tie_weights
@@ -66,15 +72,19 @@ def reinit_model_layers(
 
     if try_lm_head is not None:
         lm_head_src = try_lm_head.weight.data.clone().to(torch.float32)
-        new_lm_head = nn.Linear(model.config.hidden_size, model.config.vocab_size, bias=False, dtype=dtype)
+        new_lm_head = nn.Linear(
+            model.config.hidden_size, model.config.vocab_size, bias=False, dtype=dtype
+        )
         new_lm_head.weight.data.normal_(mean=0.0, std=initializer_range)
 
     embeddings_src = model.get_input_embeddings().weight.data.clone().to(torch.float32)
 
-    new_emb_layer = nn.Embedding(model.config.vocab_size, model.config.hidden_size, dtype=dtype)
+    new_emb_layer = nn.Embedding(
+        model.config.vocab_size, model.config.hidden_size, dtype=dtype
+    )
     new_emb_layer.weight.data.normal_(mean=0.0, std=initializer_range)
 
-    if reinit_mode in ['eeve', 'mean']:
+    if reinit_mode in ["eeve", "mean"]:
         with torch.no_grad():
             embedding_mean_vector = torch.mean(embeddings_src, dim=0).to(dtype)
             if new_lm_head is not None:
@@ -86,7 +96,9 @@ def reinit_model_layers(
 
                 if token_idx is None:
                     if reinit_mode == "eeve":
-                        i_token_vector_input = get_eeve_embeddings_for_input(embeddings_src, token, old_tokenizer)
+                        i_token_vector_input = get_eeve_embeddings_for_input(
+                            embeddings_src, token, old_tokenizer
+                        )
                     else:
                         i_token_vector_input = embedding_mean_vector
                 else:
@@ -96,7 +108,9 @@ def reinit_model_layers(
                 if new_lm_head is not None and not tie_weights:
                     if token_idx is None:
                         if reinit_mode == "eeve":
-                            i_token_vector_output = get_eeve_embeddings_for_output(lm_head_src, token, old_tokenizer)
+                            i_token_vector_output = get_eeve_embeddings_for_output(
+                                lm_head_src, token, old_tokenizer
+                            )
                         else:
                             i_token_vector_output = lm_head_mean_vector
                     else:
@@ -104,14 +118,20 @@ def reinit_model_layers(
                     new_lm_head.weight.data[i].copy_(i_token_vector_output)
 
                 if write_logs:
-                    logger.info(f'token id in new vocab: {i};\ttoken: {token};\t token id in old vocab: {token_idx}')
+                    logger.info(
+                        f"token id in new vocab: {i};\ttoken: {token};\t token id in old vocab: {token_idx}"
+                    )
 
-    elif reinit_mode == 'small_init':
+    elif reinit_mode == "small_init":
         if write_logs:
-            logger.info(f"Using small_init: embeddings initialized with normal distribution (std={initializer_range})")
+            logger.info(
+                f"Using small_init: embeddings initialized with normal distribution (std={initializer_range})"
+            )
     else:
-        raise ValueError(f"Unsupported reinit_mode: '{reinit_mode}'. Must be one of: 'small_init', 'mean', 'eeve'")
-    
+        raise ValueError(
+            f"Unsupported reinit_mode: '{reinit_mode}'. Must be one of: 'small_init', 'mean', 'eeve'"
+        )
+
     model.set_input_embeddings(new_emb_layer)
     if new_lm_head is not None:
         model.set_output_embeddings(new_lm_head)

@@ -1,8 +1,8 @@
 import dataclasses
-import datatrove.pipeline.writers as writers
-import datatrove.pipeline.readers as readers
-
 from typing import Literal
+
+import datatrove.pipeline.readers as readers
+import datatrove.pipeline.writers as writers
 from datatrove.data import Document
 from huggingface_hub import hf_hub_download
 
@@ -19,11 +19,13 @@ NAME2READER = {
 NAME2WRITER = {
     "json": writers.JsonlWriter,
     "parquet": writers.ParquetWriter,
-    "huggingface": writers.HuggingFaceDatasetWriter
+    "huggingface": writers.HuggingFaceDatasetWriter,
 }
 
 
-def _reader_adapter_with_column_info(self, data: dict, path: str, id_in_file: int | str):
+def _reader_adapter_with_column_info(
+    self, data: dict, path: str, id_in_file: int | str
+):
     """
     Modified version of the default adapter to adapt input data into the datatrove Document format
     Differs by adding source dataset column names information to metadata.
@@ -38,7 +40,7 @@ def _reader_adapter_with_column_info(self, data: dict, path: str, id_in_file: in
     """
     dataset_info = {
         "default_columns": list(data.keys()),
-        "rename_column": {'text': self.text_key} 
+        "rename_column": {"text": self.text_key},
     }
     metadata = data.pop("metadata", {})
     if isinstance(metadata, str):
@@ -58,7 +60,7 @@ def _reader_adapter_with_column_info(self, data: dict, path: str, id_in_file: in
     }
 
 
-def _writer_adapter_with_column_restore(self, document: Document) -> dict: 
+def _writer_adapter_with_column_restore(self, document: Document) -> dict:
     """
     You can create your own adapter that returns a dictionary in your preferred format
     Args:
@@ -70,17 +72,17 @@ def _writer_adapter_with_column_restore(self, document: Document) -> dict:
     data = {key: val for key, val in dataclasses.asdict(document).items() if val}
     if "metadata" in data:
         metadata = data.pop("metadata")
-        
+
         default_columns = metadata.pop("default_columns", None)
         rename_column = metadata.pop("rename_column", None)
-        
+
         data.update(metadata)
-        
+
         if rename_column:
             for old_name, new_name in rename_column.items():
                 if old_name in data and old_name != new_name:
                     data[new_name] = data.pop(old_name)
-        
+
         if default_columns:
             data = {key: data[key] for key in default_columns if key in data}
     return data
@@ -89,16 +91,19 @@ def _writer_adapter_with_column_restore(self, document: Document) -> dict:
 def fasttext_model_get_path(
     local_model_path: str | None = None,
     hf_repo_name: str | None = None,
-    filename: str | None = None
-) -> str:   
+    filename: str | None = None,
+) -> str:
     if hf_repo_name:
         if not filename:
-            raise ValueError("If `repo_id` is specified, `filename` must also be provided.") 
+            raise ValueError(
+                "If `repo_id` is specified, `filename` must also be provided."
+            )
         else:
             return hf_hub_download(repo_id=hf_repo_name, filename=filename)
     if not hf_repo_name and not local_model_path:
         raise ValueError("А че качать-то")
     return local_model_path
+
 
 REGISTRY = {
     "reader": (NAME2READER, _reader_adapter_with_column_info),
@@ -106,11 +111,7 @@ REGISTRY = {
 }
 
 
-def create_io_object(
-    cfg: dict,
-    type: Literal["reader", "writer"],
-    use_adapter: bool
-):
+def create_io_object(cfg: dict, type: Literal["reader", "writer"], use_adapter: bool):
     if type not in REGISTRY:
         raise ValueError(f"type must be either 'reader' or 'writer', got {type}")
 
@@ -119,17 +120,21 @@ def create_io_object(
     kwargs = cfg.get("kwargs", {})
 
     if io_type not in registry:
-        raise ValueError(f"Unknown {cfg['type']=}'. Available: {', '.join(registry.keys())}")
-    
+        raise ValueError(
+            f"Unknown {cfg['type']=}'. Available: {', '.join(registry.keys())}"
+        )
+
     if use_adapter:
-        kwargs['adapter'] = adapter_fn
+        kwargs["adapter"] = adapter_fn
 
     io_class = registry[io_type]
     return io_class(**kwargs)
 
 
-def create_reader_and_writer(config: dict, use_adapter_key: str = 'use_column_info_adapter'):
-    reader_cfg, writer_cfg = config['reader'], config['writer']
+def create_reader_and_writer(
+    config: dict, use_adapter_key: str = "use_column_info_adapter"
+):
+    reader_cfg, writer_cfg = config["reader"], config["writer"]
     use_adapter = config.get(use_adapter_key, False)
     reader = create_io_object(cfg=reader_cfg, type="reader", use_adapter=use_adapter)
     writer = create_io_object(cfg=writer_cfg, type="writer", use_adapter=use_adapter)

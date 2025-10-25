@@ -1,4 +1,5 @@
 import warnings
+
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2
 
 
@@ -7,12 +8,12 @@ def shrink_spm(
     output_path: str,
     target_size: int | None = None,
     remove_count: int | None = None,
-    by_score: bool = False
+    by_score: bool = False,
 ) -> None:
     m = sp_pb2.ModelProto()
-    with open(model_path, 'rb') as f:
+    with open(model_path, "rb") as f:
         m.ParseFromString(f.read())
-    
+
     pieces = list(m.pieces)
 
     if target_size is not None:
@@ -29,9 +30,9 @@ def shrink_spm(
     else:
         warnings.warn("lol")
         kept_pieces = pieces
-    
-    m.ClearField('pieces')
+
+    m.ClearField("pieces")
     m.pieces.extend(kept_pieces)
-    
-    with open(output_path, 'wb') as f:
+
+    with open(output_path, "wb") as f:
         f.write(m.SerializeToString())

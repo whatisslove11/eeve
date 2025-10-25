@@ -6,10 +6,12 @@ class EmbeddingRequest(BaseModel):
     model: str
     user: str | None = None
 
+
 class EmbeddingObject(BaseModel):
     object: str = "embedding"
     embedding: list[float]
     index: int
+
 
 class EmbeddingResponse(BaseModel):
     object: str = "list"

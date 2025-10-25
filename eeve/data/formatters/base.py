@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from datatrove.data import DocumentsPipeline
 from datatrove.pipeline.base import PipelineStep
 from datatrove.utils.typeshelper import StatHints
@@ -12,16 +13,17 @@ class AdvancedFormatter(PipelineStep, ABC):
     - "metadata['abrakadabra']"
     - "text" (set by default)
     """
+
     type = "✂️ - FORMAT"
 
     def __init__(self, list_path: str | list[str]):
         super().__init__()
         self.list_path = [list_path] if isinstance(list_path, str) else list_path
-        
+
     def _get_value(self, doc, path: str) -> str:
         context = {"doc": doc}
         return eval(f"doc.{path}", context)
-    
+
     def _set_value(self, doc, path: str, value: str):
         if "[" in path:
             base_path, key_part = path.split("[", 1)
@@ -35,7 +37,9 @@ class AdvancedFormatter(PipelineStep, ABC):
     def format(self, text: str) -> str:
         return text
 
-    def run(self, data: DocumentsPipeline, rank: int = 0, world_size: int = 1) -> DocumentsPipeline:
+    def run(
+        self, data: DocumentsPipeline, rank: int = 0, world_size: int = 1
+    ) -> DocumentsPipeline:
         for doc in data:
             self.stat_update(StatHints.total)
             with self.track_time():

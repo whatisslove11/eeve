@@ -1,6 +1,7 @@
 from tqdm.auto import tqdm
-from datasets import load_dataset
 from transformers import AutoTokenizer
+
+from datasets import load_dataset
 
 
 class StatStorage:
@@ -16,8 +17,7 @@ class StatStorage:
 
         if self_keys != other_keys:
             raise ValueError(
-                f"Object keys do not match. "
-                f"Self: {self_keys}, Other: {other_keys}"
+                f"Object keys do not match. Self: {self_keys}, Other: {other_keys}"
             )
 
         result_stats = {}
@@ -29,16 +29,18 @@ class StatStorage:
     def __getattr__(self, name):
         if name in self._stats:
             return self._stats[name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'"
+        )
 
     def __setattr__(self, name, value):
-        if name == '_stats':
+        if name == "_stats":
             super().__setattr__(name, value)
         else:
             self._stats[name] = value
 
     def __repr__(self):
-        stats_str = ', '.join(f'{k}={v}' for k, v in self._stats.items())
+        stats_str = ", ".join(f"{k}={v}" for k, v in self._stats.items())
         return f"StatStorage({stats_str})"
 
     def to_dict(self):
@@ -46,12 +48,13 @@ class StatStorage:
 
     def to_json(self):
         import json
+
         return json.dumps(self._stats)
 
     @classmethod
     def from_dict(cls, data):
         return cls(**data)
-    
+
 
 class CalculateTokenizerStats:
     def __init__(
@@ -60,7 +63,7 @@ class CalculateTokenizerStats:
         dataset: str,
         load_kwargs: dict = None,
         streaming: bool = False,
-        batch_size: int = 1000
+        batch_size: int = 1000,
     ):
         self._tokenizer_names = (
             [tokenizer_names_or_paths]
@@ -79,7 +82,7 @@ class CalculateTokenizerStats:
                 overall_sentences=0,
                 total_sentences_with_unk=0,
                 overall_tokens=0,
-                overall_chars=0
+                overall_chars=0,
             )
             for name in self._tokenizer_names
         }
@@ -93,8 +96,7 @@ class CalculateTokenizerStats:
             )
 
         tokenizers = {
-            name: AutoTokenizer.from_pretrained(name)
-            for name in self._tokenizer_names
+            name: AutoTokenizer.from_pretrained(name) for name in self._tokenizer_names
         }
 
         with tqdm(total=None) as pbar:
