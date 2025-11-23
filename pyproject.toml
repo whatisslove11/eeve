@@ -31,10 +31,10 @@ dependencies = [
 
 [project.optional-dependencies]
 lint = [
-    "ruff"
+    "ruff==0.14.6"
 ]
 tests = [
-    "pytest"
+    "pytest==8.4.1"
 ]
 all = [
     "eeve[lint]",
@@ -73,4 +73,11 @@ lint.select = [
 lines-after-imports = 2
 known-first-party = [
   "eeve"
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "pre-commit>=4.5.0",
+    "tf-keras>=2.20.1",
 ]

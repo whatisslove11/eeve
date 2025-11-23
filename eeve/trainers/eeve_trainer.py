@@ -3,14 +3,13 @@ import functools
 import os
 import shutil
 import time
-from typing import Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 from accelerate.data_loader import skip_first_batches
 from packaging import version
-from peft import PeftConfig
 from transformers import (
     AutoTokenizer,
     BaseImageProcessor,
@@ -51,6 +50,10 @@ from eeve.utils.find_layers import (
 )
 from eeve.utils.list_utils import token_ids_to_mask
 from eeve.utils.tok_utils import diff_token_ids
+
+
+if TYPE_CHECKING:
+    from peft import PeftConfig
 
 
 if is_accelerate_available():
@@ -189,7 +192,7 @@ class EeveTrainer(SFTTrainer):
         preprocess_logits_for_metrics: Optional[
             Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
         ] = None,
-        peft_config: Optional[PeftConfig] = None,
+        peft_config: Optional["PeftConfig"] = None,
         formatting_func: Optional[Callable[[dict], str]] = None,
     ):
         if peft_config is not None:

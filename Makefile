@@ -1,7 +1,11 @@
-.PHONY: test test_wo_int
+.PHONY: test test_wo_int lint
 
 test:
-	RUN_INTEGRATION_TESTS=1 python -m pytest -sv ./tests/
+	RUN_INTEGRATION_TESTS=1 uv run pytest -sv ./tests/
 
 test_wo_int:
-	python -m pytest -sv ./tests/
+	uv run pytest -sv ./tests/
+
+lint:
+	uv run ruff check eeve tests examples
+	uv run ruff format --check eeve tests examples
