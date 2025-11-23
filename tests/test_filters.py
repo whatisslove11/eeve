@@ -1,4 +1,7 @@
+import os
 import unittest
+
+import pytest
 
 from eeve.data.filters import (
     BadTranslationsFilter,
@@ -180,6 +183,10 @@ class TestFilters(unittest.TestCase):
         self.assertFalse(lang_filter.filter(doc_fr))
         self.assertEqual(doc_fr.metadata["language"], "fra_Latn")
 
+    @pytest.mark.skipif(
+        os.getenv("RUN_INTEGRATION_TESTS") != "1",
+        reason="Integration tests are disabled",
+    )
     @require_openai
     def test_bad_translations_filter(self):
         from openai import OpenAI
@@ -189,7 +196,7 @@ class TestFilters(unittest.TestCase):
 
         bt_filter = BadTranslationsFilter(
             client=client,
-            model_name="",
+            model_name="",  # the server ignores the model name
             list_path=["text", "metadata['test_text']"],
             sim_score=0.8,
             batch_size=6,

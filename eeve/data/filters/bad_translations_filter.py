@@ -14,10 +14,10 @@ class BadTranslationsFilter(BaseFilter):
     def __init__(
         self,
         client: OpenAI,
-        model_name: str,
         list_path: list[str],
         sim_score: float,
         batch_size: int = 2,
+        model_name: str = "",
         query_prepocess_fn: None = None,
         passage_prepocess_fn: None = None,
         exclusion_writer: DiskWriter = None,
@@ -28,9 +28,9 @@ class BadTranslationsFilter(BaseFilter):
         Args:
            list_path: two fields in the document for which the filter rule will be checked
            client: OpenAI client instance
-           model_name: model name to use (optional for my infinity server)
            sim_score: minimum cosine similarity threshold (0 to 1) for texts to pass
            batch_size: batch_size ;)
+           model_name: model name to use (can be anything, server ignores the model name)
            query_prepocess_fn: optional preprocessing function for the first text field
            passage_prepocess_fn: optional preprocessing function for the second text field
            exclusion_writer:

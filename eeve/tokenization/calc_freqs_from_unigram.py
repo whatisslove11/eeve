@@ -7,12 +7,12 @@ from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
 
 
 def generate_file_with_tokens_freqs(
-    tokenizer_model_file: str, output_dir: str, output_filename: str
+    path_to_spm_tokenizer: str, output_dir: str, output_filename: str
 ) -> None:
     full_path = os.path.join(output_dir, output_filename)
 
     spm_pr = sp_pb2_model.ModelProto()
-    tokenizer = spm.SentencePieceProcessor(model_file=tokenizer_model_file)
+    tokenizer = spm.SentencePieceProcessor(model_file=path_to_spm_tokenizer)
     spm_pr.ParseFromString(tokenizer.serialized_model_proto())
     if spm_pr.trainer_spec.model_type != 1:
         raise ValueError(
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         description="Generate a file with token frequencies from a SentencePiece unigram model"
     )
     parser.add_argument(
-        "--tokenizer_model_file",
+        "--path_to_spm_tokenizer",
         type=str,
         required=True,
         help="Path to the SentencePiece tokenizer model file (.model extension)",
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generate_file_with_tokens_freqs(
-        tokenizer_model_file=args.tokenizer_model_file,
+        tokenizer_model_file=args.path_to_spm_tokenizer,
         output_dir=args.output_dir,
         output_filename=args.output_filename,
     )

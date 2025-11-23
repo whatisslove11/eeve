@@ -8,25 +8,48 @@ version = "0.1.0"
 description = "Eeve: a toolkit for data processing and training machine translation models"
 requires-python = ">=3.10"
 dependencies = [
-    "transformers<=4.53.3",
-    "datatrove[all]",
-    "sentence-transformers>=5.1.0",
-    "fasttext-numpy2-wheel==0.9.2",
-    "hydra-core>=1.3.2",
-    "rich",
-    "sentencepiece>=0.2.0",
+    "accelerate>=1.10.0",
     "datasets>=3.2.0",
-    "tqdm",
+    "datatrove[all]",
+    "deepspeed==0.14.5; sys_platform == 'linux'",
+    "faiss-cpu",
+    "fasttext-numpy2-wheel",
+    "huggingface-hub>=0.34.4",
+    "hydra-core>=1.3.2",
+    "liger-kernel>=0.5.10",
+    "numpy>=2.0.0",
+    "openai>=2.3.0",
     "PyYAML>=5.1.0",
-    "sacrebleu",
-    "evaluate",
-    "faiss-cpu"
+    "rich",
+    "sentence-transformers>=5.1.0",
+    "sentencepiece>=0.2.0",
+    "tokenizers==0.21.0",
+    "tqdm",
+    "transformers<=4.53.3",
+    "trl==0.19.0"
+]
+
+[project.optional-dependencies]
+lint = [
+    "ruff"
+]
+tests = [
+    "pytest"
+]
+all = [
+    "eeve[lint]",
+    "eeve[tests]"
+]
+dev = [
+    "eeve[all]"
 ]
 
 [tool.setuptools.packages.find]
-where = ["eeve"] 
+where = ["."]
+include = ["eeve*"]
 
 [tool.ruff]
+extend-exclude = ["*.ipynb"]
 lint.ignore = [
     "C901", # `function_name` is too complex
     "E501", # line length violation
