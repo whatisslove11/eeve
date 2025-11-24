@@ -3,6 +3,7 @@ from typing import Literal
 import torch
 import torch.nn as nn
 from tqdm.auto import tqdm
+from transformers import PreTrainedModel
 
 from eeve.utils.logger import get_logs_writer_logger
 
@@ -52,12 +53,18 @@ def get_eeve_embeddings_for_output(
 
 def reinit_model_layers(
     model,
+    *,
     old_tokenizer,
     new_tokenizer,
     reinit_mode: Literal["small_init", "mean", "eeve"],
     tie_weights: bool = False,
     write_logs: bool = False,
 ):
+    # TODO: пофиксить приколы с мультимодальными моделями (gemma3 привет)
+    if not isinstance(model, PreTrainedModel):
+        raise RuntimeError(
+            "Нужно передать модель, загруженную через transformers, т.к. используются специфичные методы классов"
+        )
     if write_logs:
         logger = get_logs_writer_logger()
 

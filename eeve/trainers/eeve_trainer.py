@@ -195,6 +195,11 @@ class EeveTrainer(SFTTrainer):
         peft_config: Optional["PeftConfig"] = None,
         formatting_func: Optional[Callable[[dict], str]] = None,
     ):
+        opt, sch = optimizers
+        if opt is not None or sch is not None:
+            raise ValueError(
+                "На каждой из стадии Eeve обучается разное количество параметров, из-за чего на каждой стадии оптимизатор будет создаваться заново"
+            )
         if peft_config is not None:
             raise ValueError(
                 "EeveTrainer does not support PEFT integration; please disable peft_config."
@@ -264,10 +269,14 @@ class EeveTrainer(SFTTrainer):
                 "No token difference detected between source and target tokenizers; nothing to train."
             )
 
-        grad_mask = token_ids_to_mask(
-            diff_tokens_ids=diff_tokens_ids, num_tokens=self.vocab_size
+        grad_mask = (
+            token_ids_to_mask(
+                diff_tokens_ids=diff_tokens_ids, num_tokens=self.vocab_size
+            )
+            .unsqueeze(dim=1)
+            .expand((-1, self.hidden_size))
         )
-        self.register_buffer("grad_mask", grad_mask, persistent=True)
+        self.model.register_buffer("grad_mask", grad_mask, persistent=False)
 
         self._global_steps = 0
         self._grad_hooks = []
@@ -287,6 +296,7 @@ class EeveTrainer(SFTTrainer):
     def train(self, **kwargs):
         for stage_info in self.stage_spec:
             self._remove_hooks()
+            self._reset_optimizer_and_scheduler()
             self._set_layer_trainability(model=self.model, stage_info=stage_info)
             state = super().train(**kwargs)
             self.all_stages_trainer_states[stage_info.name] = state
@@ -521,10 +531,13 @@ class EeveTrainer(SFTTrainer):
         steps_trained_progress_bar = None
 
         eeve_stage_skip_batches = 0
-        if self._global_steps > 0:
+        if args.skip_batches_between_stages and self._global_steps > 0:
             epochs_trained = int(self._global_steps // num_update_steps_per_epoch)
             eeve_stage_skip_batches = self._global_steps % (num_update_steps_per_epoch)
             eeve_stage_skip_batches *= args.gradient_accumulation_steps
+            logger.info(
+                f"'skip_batches_between_stages' is True. Will be skipped first {eeve_stage_skip_batches} batches for this stage for first epoch."
+            )
 
             # Check if continuing training from a checkpoint
             # костыль - пока resume_from_checkpoint всегда None, потом написать нормально
@@ -738,7 +751,7 @@ class EeveTrainer(SFTTrainer):
                             else:
                                 grad_norm_context = contextlib.nullcontext
                                 if self.is_tp_enabled:
-                                    from torch.distributed._tensor.experimental import (
+                                    from torch.distributed._tensor.experimental import (  # type: ignore  # noqa: I001
                                         implicit_replication,
                                     )
 
@@ -930,7 +943,7 @@ class EeveTrainer(SFTTrainer):
 
     def _set_layer_trainability(self, model, stage_info) -> None:
         def freeze_partial_embedding_hook(grad):
-            grad = grad * self.grad_mask.to(grad.device)
+            grad = grad * self.model.grad_mask.to(grad.device)
             return grad
 
         for name, param in model.named_parameters():
@@ -960,6 +973,6 @@ class EeveTrainer(SFTTrainer):
             h.remove()
         self._grad_hooks.clear()
 
-    def reset_optimizer_and_scheduler(self):
-        # are we really need to do this?
+    def _reset_optimizer_and_scheduler(self):
+        # Need to auto re-create optimizer and lr_scheduler every stage
         self.optimizer, self.lr_scheduler = None, None
