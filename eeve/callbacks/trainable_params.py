@@ -13,10 +13,15 @@ def count_module_parameters(module):
 
 class EeveStageTrainableParamsCallback(TrainerCallback):
     def __init__(
-        self, embedding_layer_name: str, lm_head_name: str, num_tokens_for_hook: int
+        self,
+        embedding_layer_name: str,
+        lm_head_name: str,
+        hidden_size: int,
+        num_tokens_for_hook: int,
     ):
         self.embedding_layer_name = embedding_layer_name
         self.lm_head_name = lm_head_name
+        self.hidden_size = hidden_size
         self.num_tokens_for_hook = num_tokens_for_hook
 
         self.names = [
@@ -49,9 +54,10 @@ class EeveStageTrainableParamsCallback(TrainerCallback):
                 0,
             )
 
-            if getattr(param, "_backward_hooks", False):
-                hooked_params += self.num_tokens_for_hook * param.shape[1]
-                trainable_params -= hooked_params
+            if param._backward_hooks:
+                not_hooked = self.num_tokens_for_hook * self.hidden_dim
+                hooked_params = trainable_params - not_hooked
+                trainable_params = not_hooked
 
             layer_type = next(
                 (

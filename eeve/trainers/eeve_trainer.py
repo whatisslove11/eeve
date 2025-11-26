@@ -89,6 +89,12 @@ logger = logging.get_logger(__name__)
 TRAINER_STATE_NAME = "trainer_state.json"
 
 
+class TrainMode:
+    FROZEN = "frozen"
+    TRAINABLE = "trainable"
+    PARTIAL = "partial"
+
+
 class EeveTrainer(SFTTrainer):
     """
     Trainer for Efficient and Effective Vocabulary Expansion (EEVE) method.
@@ -97,7 +103,8 @@ class EeveTrainer(SFTTrainer):
     This class is a wrapper around the [`trl.SFTTrainer`] (which also a wrapper around [`transformers.Trainer`]) class and inherits all of its attributes and methods.
 
     !!! NOTE !!!
-    Оригинальная имплементация не применялась на стадии SFT - но данная реализация все равно повторяет все необходимые шаги обучения
+        The original EEVE paper does not include an SFT stage. This implementation follows
+        all the training steps from the paper but is provided for educational purposes.
 
     Args:
         model (`Union[str, PreTrainedModel]`):
@@ -109,11 +116,14 @@ class EeveTrainer(SFTTrainer):
               using [`~transformers.AutoModelForCausalLM.from_pretrained`] with the keyword arguments in
               `args.model_init_kwargs`.
             - A [`~transformers.PreTrainedModel`] object. Only causal language models are supported.
-        callback_for_stage_switching: [`~transformers.TrainerCallback`]
-            pass
-        src_model_path: str
-            Путь до/наименование оргиниальной модели (к которой были добавлены токены в словарь и изменены эмбеддинги)
-            Используется для определения токенов, которые нужно будет обучать
+        callback_for_stage_switching (`~transformers.TrainerCallback`):
+            Callback for automatic transition to the next EEVE training stage (e.g., upon loss convergence).
+            Must set `control.should_training_stop = True` to signal stage completion.
+            See [`~transformers.EarlyStoppingCallback`](https://github.com/huggingface/transformers/blob/v4.57.3/src/transformers/trainer_callback.py#L712)
+            for a reference implementation.
+        src_model_path (`str`):
+            Path or model identifier of the original model (before vocabulary expansion and embedding resizing).
+            Used to determine which token embeddings are new and should be trained.
         args ([`EeveConfig`], *optional*, defaults to `None`):
             Configuration for this trainer. If `None`, a default configuration is used.
         data_collator (`DataCollator`, *optional*):
@@ -198,14 +208,18 @@ class EeveTrainer(SFTTrainer):
         opt, sch = optimizers
         if opt is not None or sch is not None:
             raise ValueError(
-                "На каждой из стадии Eeve обучается разное количество параметров, из-за чего на каждой стадии оптимизатор будет создаваться заново"
+                "Custom `optimizers` are not supported in EeveTrainer. "
+                "EEVE re-initializes the optimizer at each stage transition. "
+                "Use `optimizer_cls_and_kwargs` to customize optimizer settings."
             )
         if peft_config is not None:
             raise ValueError(
-                "EeveTrainer does not support PEFT integration; please disable peft_config."
+                "EeveTrainer does not support PEFT. Remove `peft_config` argument."
             )
         if args.resume_from_checkpoint is not None:
-            raise ValueError("'resume_from_checkpoint' support will be added later")
+            raise NotImplementedError(
+                "`resume_from_checkpoint` is not yet supported in EeveTrainer."
+            )
         callbacks = (callbacks or []) + [callback_for_stage_switching]
 
         super().__init__(
@@ -230,7 +244,7 @@ class EeveTrainer(SFTTrainer):
 
         emb_module = is_module_exists(self.model, "model.embed_tokens")
         if emb_module is not None:
-            self.embedding_layer_name = "embed_tokens"
+            self.embedding_layer_name = "model.embed_tokens"
             self.vocab_size, self.hidden_size = emb_module.weight.shape
         else:
             found_name, found_shape = get_first_layer_by_type(
@@ -269,14 +283,9 @@ class EeveTrainer(SFTTrainer):
                 "No token difference detected between source and target tokenizers; nothing to train."
             )
 
-        grad_mask = (
-            token_ids_to_mask(
-                diff_tokens_ids=diff_tokens_ids, num_tokens=self.vocab_size
-            )
-            .unsqueeze(dim=1)
-            .expand((-1, self.hidden_size))
-        )
-        self.model.register_buffer("grad_mask", grad_mask, persistent=False)
+        self.grad_mask = token_ids_to_mask(
+            diff_tokens_ids=diff_tokens_ids, num_tokens=self.vocab_size
+        ).unsqueeze(dim=1)
 
         self._global_steps = 0
         self._grad_hooks = []
@@ -286,6 +295,7 @@ class EeveTrainer(SFTTrainer):
             every_stage_params_tracker_callback = EeveStageTrainableParamsCallback(
                 embedding_layer_name=self.embedding_layer_name,
                 lm_head_name=self.lm_head_name,
+                hidden_size=self.hidden_size,
                 num_tokens_for_hook=num_diff_tokens,
             )
             self.add_callback(every_stage_params_tracker_callback)
@@ -312,7 +322,13 @@ class EeveTrainer(SFTTrainer):
         ignore_keys_for_eval=None,
     ):
         """
-        Patched
+        Patched version of the original `_inner_training_loop`.
+
+        Modifications for EEVE multi-stage training:
+            - Resume from checkpoint is temporarily disabled.
+            - When `args.skip_batches_between_stages=True`, batches consumed in previous stages are skipped, ensuring each stage sees only fresh data.
+
+        See `EeveConfig.skip_batches_between_stages` for details.
         """
         self.accelerator.free_memory()
         self._train_batch_size = batch_size
@@ -943,8 +959,7 @@ class EeveTrainer(SFTTrainer):
 
     def _set_layer_trainability(self, model, stage_info) -> None:
         def freeze_partial_embedding_hook(grad):
-            grad = grad * self.model.grad_mask.to(grad.device)
-            return grad
+            return grad * self.grad_mask.to(grad.device)
 
         for name, param in model.named_parameters():
             if self.embedding_layer_name in name:
@@ -954,18 +969,18 @@ class EeveTrainer(SFTTrainer):
             else:
                 mode = stage_info.transformer_block
 
-            if mode == "frozen":
+            if mode == TrainMode.FROZEN:
                 param.requires_grad = False
-            elif mode == "trainable":
+            elif mode == TrainMode.TRAINABLE:
                 param.requires_grad = True
-            elif mode == "partial":
+            elif mode == TrainMode.PARTIAL:
                 param.requires_grad = True
                 self._grad_hooks.append(
                     param.register_hook(freeze_partial_embedding_hook)
                 )
             else:
                 raise ValueError(
-                    f"The EEVE stage configuration contains an invalid mode: '{mode}'. Please verify the EEVE_SCHEDULE integrity."
+                    f"Invalid EEVE stage mode: '{mode}'. Expected one of: 'frozen', 'trainable', 'partial'."
                 )
 
     def _remove_hooks(self) -> None:
