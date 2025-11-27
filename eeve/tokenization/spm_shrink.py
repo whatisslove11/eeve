@@ -20,7 +20,9 @@ def shrink_spm(
         kept_pieces = pieces[:target_size]
     elif remove_count is not None and remove_count > 0:
         if remove_count >= len(pieces):
-            raise ValueError
+            raise ValueError(
+                f"{remove_count=} cannot exceed vocabulary size={len(pieces)}."
+            )
         if by_score:
             sorted_indices = sorted(range(len(pieces)), key=lambda i: pieces[i].score)
             indices_to_keep = set(sorted_indices[remove_count:])
@@ -28,11 +30,14 @@ def shrink_spm(
         else:
             kept_pieces = pieces[:-remove_count]
     else:
-        warnings.warn("lol")
-        kept_pieces = pieces
+        warnings.warn(
+            "No target_size or remove_count specified. Model copied unchanged."
+        )
+        return
 
     m.ClearField("pieces")
     m.pieces.extend(kept_pieces)
+    m.trainer_spec.vocab_size = len(kept_pieces)
 
     with open(output_path, "wb") as f:
         f.write(m.SerializeToString())

@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train_large",
         default=True,
+        type=bool,
         help="Enable training for extremely large corpus (default: True)",
     )
     parser.add_argument(

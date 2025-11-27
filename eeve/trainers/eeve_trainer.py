@@ -212,6 +212,10 @@ class EeveTrainer(SFTTrainer):
                 "EEVE re-initializes the optimizer at each stage transition. "
                 "Use `optimizer_cls_and_kwargs` to customize optimizer settings."
             )
+
+        # In the original paper, Stage 6 and 7
+        # utilized QLoRA for efficient training.
+        # This is currently not implemented, but is planned.
         if peft_config is not None:
             raise ValueError(
                 "EeveTrainer does not support PEFT. Remove `peft_config` argument."
@@ -548,7 +552,6 @@ class EeveTrainer(SFTTrainer):
 
         eeve_stage_skip_batches = 0
         if args.skip_batches_between_stages and self._global_steps > 0:
-            epochs_trained = int(self._global_steps // num_update_steps_per_epoch)
             eeve_stage_skip_batches = self._global_steps % (num_update_steps_per_epoch)
             eeve_stage_skip_batches *= args.gradient_accumulation_steps
             logger.info(
@@ -570,18 +573,18 @@ class EeveTrainer(SFTTrainer):
             #     else:
             #         steps_trained_in_current_epoch = 0
 
-            logger.info(
-                "  Continuing training from checkpoint, will skip to saved global_step"
-            )
-            logger.info(f"  Continuing training from epoch {epochs_trained}")
-            logger.info(
-                f"  Continuing training from global step {self.state.global_step}"
-            )
-            if not args.ignore_data_skip:
-                logger.info(
-                    f"  Will skip the first {epochs_trained} epochs then the first"
-                    f" {steps_trained_in_current_epoch} batches in the first epoch."
-                )
+            # logger.info(
+            #     "  Continuing training from checkpoint, will skip to saved global_step"
+            # )
+            # logger.info(f"  Continuing training from epoch {epochs_trained}")
+            # logger.info(
+            #     f"  Continuing training from global step {self.state.global_step}"
+            # )
+            # if not args.ignore_data_skip:
+            #     logger.info(
+            #         f"  Will skip the first {epochs_trained} epochs then the first"
+            #         f" {steps_trained_in_current_epoch} batches in the first epoch."
+            #     )
 
         # Update the references
         for attr in ("model", "optimizer", "lr_scheduler"):

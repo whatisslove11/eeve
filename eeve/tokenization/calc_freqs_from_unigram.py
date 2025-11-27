@@ -9,6 +9,7 @@ from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
 def generate_file_with_tokens_freqs(
     path_to_spm_tokenizer: str, output_dir: str, output_filename: str
 ) -> None:
+    os.makedirs(output_dir, exist_ok=True)
     full_path = os.path.join(output_dir, output_filename)
 
     spm_pr = sp_pb2_model.ModelProto()
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generate_file_with_tokens_freqs(
-        tokenizer_model_file=args.path_to_spm_tokenizer,
+        path_to_spm_tokenizer=args.path_to_spm_tokenizer,
         output_dir=args.output_dir,
         output_filename=args.output_filename,
     )

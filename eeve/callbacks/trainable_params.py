@@ -5,9 +5,9 @@ from eeve.utils.stat_storage import StatStorage
 from eeve.utils.vis_helper import VisHelper
 
 
-def count_module_parameters(module):
-    total_params = module.numel()
-    trainable_params = module.numel() if module.requires_grad else 0
+def count_params(param):
+    total_params = param.numel()
+    trainable_params = param.numel() if param.requires_grad else 0
     return total_params, trainable_params
 
 
@@ -50,12 +50,12 @@ class EeveStageTrainableParamsCallback(TrainerCallback):
 
         for name, param in model.named_parameters():
             (total_params, trainable_params), hooked_params = (
-                count_module_parameters(param),
+                count_params(param),
                 0,
             )
 
             if param._backward_hooks:
-                not_hooked = self.num_tokens_for_hook * self.hidden_dim
+                not_hooked = self.num_tokens_for_hook * self.hidden_size
                 hooked_params = trainable_params - not_hooked
                 trainable_params = not_hooked
 

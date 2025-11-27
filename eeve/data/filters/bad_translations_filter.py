@@ -1,3 +1,5 @@
+from typing import Callable
+
 import torch
 import torch.nn.functional as F
 from datatrove.data import Document
@@ -18,8 +20,8 @@ class BadTranslationsFilter(BaseFilter):
         sim_score: float,
         batch_size: int = 2,
         model_name: str = "",
-        query_prepocess_fn: None = None,
-        passage_prepocess_fn: None = None,
+        query_prepocess_fn: Callable | None = None,
+        passage_prepocess_fn: Callable | None = None,
         exclusion_writer: DiskWriter = None,
     ):
         """
