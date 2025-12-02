@@ -71,3 +71,4 @@ lines-after-imports = 2
 known-first-party = [
     "eeve"
 ]
+known-third-party = ["datasets"]

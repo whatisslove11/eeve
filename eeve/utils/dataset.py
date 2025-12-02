@@ -3,9 +3,9 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from datasets import Dataset, DatasetDict, load_dataset
 from tqdm import tqdm
 
-from datasets import Dataset, DatasetDict, load_dataset
 from eeve.utils.logger import get_logger
 
 

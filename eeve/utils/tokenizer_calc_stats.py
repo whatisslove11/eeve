@@ -1,7 +1,7 @@
+from datasets import load_dataset
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 
-from datasets import load_dataset
 from eeve.utils.stat_storage import StatStorage
 
 

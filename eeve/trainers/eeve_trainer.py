@@ -9,6 +9,7 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 from accelerate.data_loader import skip_first_batches
+from datasets import Dataset, IterableDataset
 from packaging import version
 from transformers import (
     AutoTokenizer,
@@ -40,7 +41,6 @@ from transformers.utils import (
 from trl import SFTTrainer
 from trl.trainer import disable_dropout_in_model
 
-from datasets import Dataset, IterableDataset
 from eeve.callbacks.trainable_params import EeveStageTrainableParamsCallback
 from eeve.configs.eeve_config import EEVE_SCHEDULE, EeveConfig
 from eeve.utils.find_layers import (
