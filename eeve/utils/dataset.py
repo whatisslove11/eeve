@@ -82,7 +82,7 @@ def _convert_datasets_to_txt(
         output_filename: Name of the output file
         max_file_size: Maximum file size in bytes. If -1, no size limit is applied.
     """
-    logger = get_logger()
+    logger = get_logger(logger_name=__name__)
     os.makedirs(output_dir, exist_ok=True)
 
     file_index = 0
