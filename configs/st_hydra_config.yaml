@@ -40,6 +40,20 @@ evaluator:
   _convert_: "partial"
   name: ${run_name}
 
+  # If true, automatically passes source/target columns from data.source_column/data.target_column
+  # as source_sentences/target_sentences (backward-compatible behavior for TranslationEvaluator).
+  auto_translation_columns: true
+
+  # Optional static kwargs passed directly to evaluator constructor.
+  # kwargs:
+  #   print_wrong_matches: true
+
+  # Optional dynamic kwargs loaded from eval_dataset columns: evaluator_arg -> column_name
+  # dataset_kwargs_from_columns:
+  #   source_sentences: ${data.source_column}
+  #   target_sentences: ${data.target_column}
+  #   labels: label_column
+
 training:
   _target_: sentence_transformers.SentenceTransformerTrainingArguments
   output_dir: ${output_base_dir}/${run_name}
