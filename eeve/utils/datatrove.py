@@ -101,7 +101,9 @@ def fasttext_model_get_path(
         else:
             return hf_hub_download(repo_id=hf_repo_name, filename=filename)
     if not hf_repo_name and not local_model_path:
-        raise ValueError("А че качать-то")
+        raise ValueError(
+            "Either `local_model_path` or (`hf_repo_name` and `filename`) must be provided."
+        )
     return local_model_path
 
 

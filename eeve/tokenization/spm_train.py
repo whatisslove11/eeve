@@ -30,11 +30,18 @@ if __name__ == "__main__":
         default="all",
         help='Number of threads to use for training. Use "all" for maximum available threads or specify an integer (default: all)',
     )
+    parser.set_defaults(train_large=True)
     parser.add_argument(
         "--train_large",
-        default=True,
-        type=bool,
-        help="Enable training for extremely large corpus (default: True)",
+        dest="train_large",
+        action="store_true",
+        help="Enable training mode for extremely large corpus (default).",
+    )
+    parser.add_argument(
+        "--no-train_large",
+        dest="train_large",
+        action="store_false",
+        help="Disable training mode for extremely large corpus.",
     )
     parser.add_argument(
         "--user_defined_symbols",
