@@ -12,6 +12,47 @@ from eeve.utils.seed import seed_everything
 warnings.filterwarnings("ignore")
 
 
+def _build_evaluator(cfg: DictConfig, eval_dataset):
+    evaluator_cfg = OmegaConf.create(OmegaConf.to_container(cfg.evaluator, resolve=True))
+
+    evaluator_init_kwargs = OmegaConf.to_container(
+        evaluator_cfg.pop("kwargs", {}), resolve=True
+    )
+    dataset_kwargs_from_columns = OmegaConf.to_container(
+        evaluator_cfg.pop("dataset_kwargs_from_columns", {}), resolve=True
+    )
+    auto_translation_columns = evaluator_cfg.pop("auto_translation_columns", True)
+
+    for arg_name, column_name in dataset_kwargs_from_columns.items():
+        if column_name not in eval_dataset.column_names:
+            raise ValueError(
+                f"Column '{column_name}' not found in eval_dataset for evaluator argument '{arg_name}'. "
+                f"Available columns: {list(eval_dataset.column_names)}"
+            )
+        evaluator_init_kwargs[arg_name] = list(eval_dataset[column_name])
+
+    if auto_translation_columns:
+        source_column = cfg.data.get("source_column")
+        target_column = cfg.data.get("target_column")
+
+        if source_column and "source_sentences" not in evaluator_init_kwargs:
+            if source_column not in eval_dataset.column_names:
+                raise ValueError(
+                    f"Column '{source_column}' not found in eval_dataset for evaluator argument 'source_sentences'. "
+                    f"Available columns: {list(eval_dataset.column_names)}"
+                )
+            evaluator_init_kwargs["source_sentences"] = list(eval_dataset[source_column])
+
+        if target_column and "target_sentences" not in evaluator_init_kwargs:
+            if target_column not in eval_dataset.column_names:
+                raise ValueError(
+                    f"Column '{target_column}' not found in eval_dataset for evaluator argument 'target_sentences'. "
+                    f"Available columns: {list(eval_dataset.column_names)}"
+                )
+            evaluator_init_kwargs["target_sentences"] = list(eval_dataset[target_column])
+
+    return hydra.utils.instantiate(evaluator_cfg, **evaluator_init_kwargs)
+
 @hydra.main(
     config_path="../../configs", config_name="st_hydra_config", version_base=None
 )
@@ -74,15 +115,7 @@ def train(cfg: DictConfig):
     model = hydra.utils.instantiate(cfg.model)
     loss = hydra.utils.instantiate(cfg.loss, model=model)
 
-    source_sentences = list(eval_dataset[cfg.data.source_column])
-    target_sentences = list(eval_dataset[cfg.data.target_column])
-
-    # TODO: допилить для использования любых параметров в evaluator
-    evaluator = hydra.utils.instantiate(
-        cfg.evaluator,
-        source_sentences=source_sentences,
-        target_sentences=target_sentences,
-    )
+    evaluator = _build_evaluator(cfg=cfg, eval_dataset=eval_dataset)
 
     training_args = hydra.utils.instantiate(cfg.training)
     trainer = SentenceTransformerTrainer(
